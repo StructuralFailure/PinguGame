@@ -1,0 +1,26 @@
+=== Level file structure ===
+
+A blank line signifies the beginning of a new section.
+
+== Section 1 == Tile map ==
+
+In this section, the level's tile map is specified. Starting at y = 0, 
+every character represents the type of one tile. A new line increments
+y by 1.
+
+== Section 2 == Entity map ==
+
+Here, entities' data is stored. This includes their type, their position,
+and all other data they might require for their creation on the map. All
+entities specified in the file will be spawned as soon as the level is loaded.
+
+Unsure about the format, but it could be something like this:
+
+	TYPE, X, Y, W, H, DATA
+
+- X, Y, W, and H determine the values of Entity.rect.
+  As entities know their width and height anyway, W and H may not
+  be necessary.
+
+- DATA may contain additional data required for initialization.
+  What is not specified will be set to 0.
