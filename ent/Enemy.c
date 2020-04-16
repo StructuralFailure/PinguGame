@@ -47,7 +47,6 @@ Entity* EntityEnemy_create(float x, float y)
 	};
 
 	data->species = EET_ASSHOLE;
-	data->going_right = true;
 	data->velocity = (Vector2D) {
 		.x = HSPEED,
 		.y = 0
@@ -61,13 +60,6 @@ Entity* EntityEnemy_create(float x, float y)
 
 	return enemy;
 }
-
-void EntityEnemy_destroy(Entity* entity) 
-{
-	free(entity->data);
-	free(entity);
-}
-
 
 void EntityEnemy_add(Entity* entity)
 {
@@ -105,6 +97,6 @@ void EntityEnemy_draw(Entity* entity)
 
 void EntityEnemy_remove(Entity* entity)
 {
-
-
+	free(entity->data);
+	free(entity);
 }

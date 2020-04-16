@@ -11,12 +11,18 @@
 #include "Player.h"
 
 
-const int MAX_JUMP_CHARGE = 7;
-const float JUMP_SPEED = -3.5;
+#define TEXT_SCORE_SIZE 32
+#define MAX_JUMP_CHARGE 7
+#define JUMP_SPEED      -3.5
 
-bool try_jump(Entity* entity);
+#define SPEED_CLIMBING_X  0.7
+#define SPEED_CLIMBING_Y  0.7
+/* TODO: add a bunch more defines to get rid of magic numbers. */
+#define GRAVITY           0.15 
+#define MAX_FALLING_SPEED 3
 
 
+char text_score[32];
 SDL_Texture* tex_player_left;
 SDL_Texture* tex_player_right;
 
@@ -77,115 +83,151 @@ Entity* EntityPlayer_create()
 
 void EntityPlayer_add(Entity* entity)
 {
-
+	printf("[EntityPlayer] added\n");
+	/* create text entity */
+	EntityPlayerData* data = (EntityPlayerData*)(entity->data);
+	data->entity_text = EntityText_create(text_score);
+	data->entity_text_text = calloc(1, TEXT_SCORE_SIZE);
+	EntityText_set_text(data->entity_text, data->entity_text_text);
+	Game_add_entity(entity->game, data->entity_text);
 }
 
 
 void EntityPlayer_update(Entity* entity)
 {
 	EntityPlayerData* data = (EntityPlayerData*)entity->data;
-
 	const Uint8* keystate = SDL_GetKeyboardState(NULL);
 
-	/* gravity */
-	data->velocity.y = min(data->velocity.y + 0.15, 3);
+	/* TODO: this is getting messy as fuck.
+	 * i need to find a better solution to manage state.
+	 */
 
-	bool moving_horizontally = false;
-	if (keystate[SDL_SCANCODE_LEFT]) {
-		data->velocity.x = max(data->velocity.x - 0.3, -2.5);
-		if (data->velocity.x < 0) {
-			data->facing = EPF_LEFT;
-		}
-		moving_horizontally = true;
-	} 
-	if (keystate[SDL_SCANCODE_RIGHT]) {
-		data->velocity.x = min(data->velocity.x + 0.3, 2.5);
-		if (data->velocity.x > 0) {
-			data->facing = EPF_RIGHT;
-		}
-		moving_horizontally = true;
-	}
+	if (data->state != EPS_CLIMBING) {
+		/* TODO: put this into a separate function to maintain readability. */
 
-	switch (data->state) {
-	case EPS_DEFAULT:
-		if (keystate[SDL_SCANCODE_UP]) {
-			data->jump_charge_counter = 0;
-			data->velocity.y = JUMP_SPEED;
-			data->state = EPS_JUMPING_CHARGING;
+		/* player is not climbing.
+		 * let him move around the map freely and perform collision detectio etc.
+		 */
+
+		/* gravity */
+		data->velocity.y = min(data->velocity.y + 0.15, 3);
+
+		bool moving_horizontally = false;
+		if (keystate[SDL_SCANCODE_LEFT]) {
+			data->velocity.x = max(data->velocity.x - 0.3, -2.5);
+			if (data->velocity.x < 0) {
+				data->facing = EPF_LEFT;
+			}
+			moving_horizontally = true;
+		} 
+		if (keystate[SDL_SCANCODE_RIGHT]) {
+			data->velocity.x = min(data->velocity.x + 0.3, 2.5);
+			if (data->velocity.x > 0) {
+				data->facing = EPF_RIGHT;
+			}
+			moving_horizontally = true;
 		}
-		break;
-	case EPS_JUMPING_CHARGING:
-		if (keystate[SDL_SCANCODE_UP]) {
-			++(data->jump_charge_counter);
-			printf("%d ", data->jump_charge_counter);
-			if (data->jump_charge_counter <= MAX_JUMP_CHARGE) {
-				data->velocity.y = JUMP_SPEED;
+
+		/* prevent player from holding down the up key to perform multiple jumps. */
+		bool key_up_pressed_fresh = keystate[SDL_SCANCODE_UP] && !(data->key_up_pressed_prev);
+		data->key_up_pressed_prev = keystate[SDL_SCANCODE_UP];
+
+		switch (data->state) {
+		case EPS_DEFAULT:
+			if (keystate[SDL_SCANCODE_UP]) {
+				if (Game_rectangle_overlaps_cell_of_type(entity->game, &(entity->rect), LCT_LADDER)) {
+					/* climb ladder */
+					data->velocity.x = 0;
+					data->velocity.y = 0;
+					data->state = EPS_CLIMBING;
+
+					/* TODO: ugly hack. separating logic to move vs. logic to climb into
+					 *       different functions should clean this up somewhat.
+					 */
+					return;
+				} else {
+					/* see if we can jump */
+					if (key_up_pressed_fresh) {
+						data->jump_charge_counter = 0;
+						data->velocity.y = JUMP_SPEED;
+						data->state = EPS_JUMPING_CHARGING;
+					}
+				}
+			}
+			break;
+		case EPS_JUMPING_CHARGING:
+			if (keystate[SDL_SCANCODE_UP]) {
+				++(data->jump_charge_counter);
+				if (data->jump_charge_counter <= MAX_JUMP_CHARGE) {
+					data->velocity.y = JUMP_SPEED;
+				} else {
+					data->jump_charge_counter = 0;
+					data->state = EPS_JUMPING;
+				}
 			} else {
-				data->jump_charge_counter = 0;
 				data->state = EPS_JUMPING;
 			}
-		} else {
-			data->state = EPS_JUMPING;
+			break;
+		case EPS_JUMPING:
+			break;
+		case EPS_FALLING:
+			break;
+		default:
+			printf("[Game] player state not handled. this is never supposed to happen. brace yourself.\n");
 		}
-		break;
-	case EPS_JUMPING:
-		break;
-	case EPS_FALLING:
-		break;
-	}
 
-	if (!moving_horizontally) {
-		if (data->velocity.x > 0) {
-			data->velocity.x = max(0, data->velocity.x - 0.4);
-		} else if (data->velocity.x < 0) {
-			data->velocity.x = min(0, data->velocity.x + 0.4);
+		if (!moving_horizontally) {
+			if (data->velocity.x > 0) {
+				data->velocity.x = max(0, data->velocity.x - 0.4);
+			} else if (data->velocity.x < 0) {
+				data->velocity.x = min(0, data->velocity.x + 0.4);
+			}
+			if (data->velocity.x == 0) {
+				entity->rect.position.x = round(entity->rect.position.x);
+			}
 		}
-		if (data->velocity.x == 0) {
-			entity->rect.position.x = round(entity->rect.position.x);
+
+		CollidedWith cw = Game_move(entity->game, entity, &(data->velocity));
+		if ((cw & CW_LEFT) || (cw & CW_RIGHT)) {
+			data->velocity.x = 0;
 		}
-	}
 
-	CollidedWith cw = Game_move(entity->game, entity, &(data->velocity));
-	if ((cw & CW_LEFT) || (cw & CW_RIGHT)) {
-		data->velocity.x = 0;
-	}
-
-	
-	if (data->state == EPS_FALLING || 
-		data->state == EPS_JUMPING || 
-		data->state == EPS_JUMPING_CHARGING) {
-		if (cw & CW_TOP) {
+		
+		if (data->state == EPS_FALLING || 
+			data->state == EPS_JUMPING || 
+			data->state == EPS_JUMPING_CHARGING) {
+			if (cw & CW_TOP) {
+				data->state = EPS_DEFAULT;
+				data->velocity.y = 0;
+			} else if (cw & CW_BOTTOM) {
+				data->velocity.y = -data->velocity.y * 0.5;
+				data->state = EPS_FALLING;
+			}
+		} else if (cw & CW_TOP) {
 			data->state = EPS_DEFAULT;
 			data->velocity.y = 0;
-		} else if (cw & CW_BOTTOM) {
-			data->velocity.y = -data->velocity.y * 0.5;
+		} else {
 			data->state = EPS_FALLING;
 		}
-	} else if (cw & CW_TOP) {
-		data->state = EPS_DEFAULT;
-		data->velocity.y = 0;
-	} else {
-		data->state = EPS_FALLING;
+	} else /* data->state == EPS_CLIMBING */ { 
+		/* player is climbing ladder */
+
+		/* check if player is actually still on ladder. */
+		bool is_on_ladder = Game_rectangle_overlaps_cell_of_type(entity->game, &(entity->rect), LCT_LADDER);
+
+		if (is_on_ladder) {
+			/* let player climb. */
+			data->velocity.x = keystate[SDL_SCANCODE_RIGHT] * SPEED_CLIMBING_X -
+			                   keystate[SDL_SCANCODE_LEFT]  * SPEED_CLIMBING_X;
+			data->velocity.y = keystate[SDL_SCANCODE_DOWN]  * SPEED_CLIMBING_Y -
+			                   keystate[SDL_SCANCODE_UP]    * SPEED_CLIMBING_Y;
+			Game_move(entity->game, entity, &(data->velocity));
+		} else {
+			/* no longer on ladder -> fall */
+			data->state = EPS_FALLING;
+		}
+
 	}
-
-	/*printf("player state: %d\n", data->state);*/
-
-	RectangleInt overlapping_cells = Game_get_overlapping_cells(entity->game, &(entity->rect));
-	/*printf(
-		"[ Player ] [ pos .x = %f | .y = %f ] [ x = %d | y = %d | w = %d | h = %d ]\n",
-		entity->rect.position.x, entity->rect.position.y,
-		overlapping_cells.position.x, overlapping_cells.position.y,
-		overlapping_cells.size.x, overlapping_cells.size.y
-	);*/
-
-	/* print overlapping cells */
-	/*Vector2DInt overlapping_cells[4];
-	int amount = Game_get_overlapping_cells(entity->game, &(entity->rect), overlapping_cells, 4);
-	printf("overlapping cells: ");
-	for (int i = 0; i < amount; ++i) {
-		printf("[ %d | %d ] ", overlapping_cells[i].x, overlapping_cells[i].y);
-	}
-	printf("\n");*/
 
 }
 
@@ -196,7 +238,8 @@ void EntityPlayer_collide(Entity* entity, Entity* entity_other)
 
 void EntityPlayer_draw(Entity* entity) 
 {
-	SDL_Rect sdl_rect = SDLHelper_get_sdl_rect(&(entity->rect));
+	Rectangle rect = entity->rect;
+	SDL_Rect sdl_rect = SDLHelper_get_sdl_rect(&rect);
 	EntityPlayerData* data = (EntityPlayerData*)(entity->data);
 	SDL_Texture* tex;
 	if (data->facing == EPF_RIGHT) {
@@ -205,10 +248,20 @@ void EntityPlayer_draw(Entity* entity)
 		tex = tex_player_left;
 	}
 	SDL_RenderCopy(sdl_renderer, tex, NULL, &sdl_rect);
+
+	/* change score text to display current position. */
+	snprintf(
+		data->entity_text_text, TEXT_SCORE_SIZE, "%03d %03d %d",
+		(int)rect.position.x, (int)rect.position.y, data->state
+	);
 }
 
 
 void EntityPlayer_remove(Entity* entity)
 {
-	
+	EntityPlayerData* data = (EntityPlayerData*)(entity->data);
+	Game_remove_entity(entity->game, data->entity_text);
+	free(data->entity_text_text);
+	free(data);
+	free(entity);
 }

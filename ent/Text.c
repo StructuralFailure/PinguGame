@@ -10,13 +10,14 @@
 
 
 #define TILESET_NUMBERS_OFFSET 416
-#define CHARACTER_WIDTH 16
+#define CHARACTER_WIDTH  16
+#define CHARACTER_HEIGHT 16
 
 
 SDL_Texture* tex_tileset;
 
 
-Entity* EntityText_create(const char* text) 
+Entity* EntityText_create(char* text) 
 {
 	if (!tex_tileset) {
 		tex_tileset = SDLHelper_load_texture("assets/gfx/letter_tileset.bmp");
@@ -38,6 +39,9 @@ Entity* EntityText_create(const char* text)
 	entity->remove = EntityText_remove;
 
 	EntityText_set_text(entity, text);
+
+	printf("[EntityText] created with text \"%s\"\n", text);
+
 	return entity;
 }
 
@@ -45,6 +49,9 @@ Entity* EntityText_create(const char* text)
 void EntityText_draw(Entity* entity) 
 {
 	char* text = ((EntityTextData*)(entity->data))->text;
+	if (!text) {
+		return;
+	}
 
 	Rectangle in_tileset_rect = {
 		.position = {
@@ -52,7 +59,7 @@ void EntityText_draw(Entity* entity)
 		},
 		.size = {
 			.x = CHARACTER_WIDTH,
-			.y = CHARACTER_WIDTH /* TODO: add definition of height */
+			.y = CHARACTER_HEIGHT /* TODO: add definition of height */
 		}
 	};
 
@@ -60,15 +67,20 @@ void EntityText_draw(Entity* entity)
 		.position = {
 			.y = entity->rect.position.y
 		},
-		.size = entity->rect.size
+		.size = {
+			.x = CHARACTER_WIDTH,
+			.y = CHARACTER_HEIGHT
+		}
 	};
 
 	for (int i = 0; text[i] != '\0'; ++i) {
 		char c = text[i];
 		int tileset_x = 0;
 
-		if (c >= '0' && c <= '9') {
-			tileset_x = TILESET_NUMBERS_OFFSET + (CHARACTER_WIDTH * (c - '0'));
+		if (c == ' ') {
+			continue;
+		} else if (c >= '0' && c <= '9') {
+			tileset_x = TILESET_NUMBERS_OFFSET + (CHARACTER_WIDTH * (c - '0'));	
 		}
 
 		in_tileset_rect.position.x = tileset_x;
@@ -85,17 +97,12 @@ void EntityText_remove(Entity* entity)
 {
 	EntityText_set_text(entity, NULL);
 	free(entity->data);
+	free(entity);
 }
 
 
-void EntityText_set_text(Entity* entity, const char* text)
+void EntityText_set_text(Entity* entity, char* text)
 {
 	EntityTextData* data = (EntityTextData*)(entity->data);
-	if (data->text) {
-		free(data->text);
-		data->text = NULL;
-	}
-	if (text) {
-		data->text = strdup(text);
-	}
+	data->text = text;
 }

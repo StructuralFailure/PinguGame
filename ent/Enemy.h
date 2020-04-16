@@ -12,7 +12,6 @@ typedef enum EntityEnemyType {
 
 typedef struct EntityEnemyData {
 	EntityEnemyType species;
-	bool going_right; /* if false, go left */
 	Vector2D velocity;
 } EntityEnemyData;
 

@@ -57,6 +57,7 @@ CollidedWith Game_move_until_collision(Game* game, Rectangle* rect, const Vector
 CollidedWith Game_move(Game* game, Entity* entity, Vector2D* delta_pos);
 RectangleInt Game_get_overlapping_cells(Game* game, Rectangle* rect);
 Rectangle Game_get_cell_rectangle(Game* game, Vector2DInt* grid_position);
+bool Game_rectangle_overlaps_cell_of_type(Game* game, Rectangle* rect, LevelCellType cell_type);
 
 
 #endif

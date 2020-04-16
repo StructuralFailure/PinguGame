@@ -4,6 +4,7 @@
 
 #include "Player.h"
 #include "Enemy.h"
+#include "Text.h"
 
 
 #endif

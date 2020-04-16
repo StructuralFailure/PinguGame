@@ -10,8 +10,7 @@
 #include "Level.h"
 #include "Game.h"
 #include "Entity.h"
-#include "ent/Player.h"
-#include "ent/Enemy.h"
+#include "ent/Entities.h"
 
 #define START_TICK_RATE 60
 #define LEVEL_PATH "assets/lvl/test"
@@ -45,8 +44,10 @@ void game(void)
 		return;
 	}
 	Game_set_level(game, level);
+
 	Entity* entity_player = EntityPlayer_create();
 	Entity* entity_enemy = EntityEnemy_create(32, 32);
+
 	Game_add_entity(game, entity_player);
 	Game_add_entity(game, entity_enemy);
 

@@ -1,6 +1,7 @@
 #ifndef H_ENT_PLAYER
 #define H_ENT_PLAYER
 
+#include "Text.h"
 #include "../Graphics.h"
 
 
@@ -8,7 +9,8 @@ typedef enum EntityPlayerState {
 	EPS_DEFAULT,
 	EPS_JUMPING_CHARGING, /* longer presses of up lead to higher jumps */
 	EPS_JUMPING,
-	EPS_FALLING
+	EPS_FALLING,
+	EPS_CLIMBING,
 } EntityPlayerState;
 
 
@@ -25,6 +27,11 @@ typedef struct EntityPlayerData {
 	Vector2D velocity;
 	EntityPlayerFacing facing;
 	int jump_charge_counter;
+
+	Entity* entity_text;
+	char* entity_text_text;
+
+	bool key_up_pressed_prev;
 } EntityPlayerData;
 
 

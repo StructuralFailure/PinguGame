@@ -7,11 +7,11 @@ typedef struct EntityTextData {
 } EntityTextData;
 
 
-Entity* EntityText_create(const char* text);
+Entity* EntityText_create(char* text);
 void EntityText_draw(Entity* entity);
 void EntityText_remove(Entity* entity);
 
-void EntityText_set_text(Entity* entity, const char* text);
+void EntityText_set_text(Entity* entity, char* text);
 
 
 #endif

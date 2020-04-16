@@ -35,6 +35,9 @@ bool Game_add_entity(Game* game, Entity* entity)
 		if (!game->entities[i]) {
 			entity->game = game;
 			game->entities[i] = entity;
+			if (entity->add) {
+				entity->add(entity);
+			}
 			return true;
 		}
 	}
@@ -46,6 +49,9 @@ bool Game_remove_entity(Game* game, Entity* entity)
 {
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
 		if (game->entities[i] == entity) {
+			if (entity->remove) {
+				entity->remove(entity);
+			}
 			game->entities[i]->game = NULL;
 			game->entities[i] = NULL;
 			return true;
@@ -491,4 +497,25 @@ Rectangle Game_get_cell_rectangle(Game* game, Vector2DInt* grid_position)
 		}
 	};
 	return result;
+}
+
+
+bool Game_rectangle_overlaps_cell_of_type(Game* game, Rectangle* rect, LevelCellType cell_type)
+{
+	RectangleInt overlapping_cells = Game_get_overlapping_cells(game, rect);
+
+	for (int dy = 0; dy < overlapping_cells.size.y; ++dy) {
+		for (int dx = 0; dx < overlapping_cells.size.x; ++dx) {
+			LevelCellTypeProperties* properties = Level_get_cell_type_properties(
+				game->current_level,
+				overlapping_cells.position.x + dx,
+				overlapping_cells.position.y + dy
+			);
+
+			if (properties->type == cell_type) {
+				return true;
+			}
+		}
+	}
+	return false;
 }
