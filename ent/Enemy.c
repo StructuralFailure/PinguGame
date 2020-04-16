@@ -5,12 +5,13 @@
 #include "../Util.h"
 #include "../Graphics.h"
 #include "../Entity.h"
+#include "../SDLHelper.h"
 #include "Enemy.h"
 
 
-const float GRAVITY = 0.15;
-const float MAX_FALL_SPEED = 3;
-const float HSPEED = 0.5;
+#define GRAVITY        0.15
+#define MAX_FALL_SPEED 3
+#define HSPEED         0.5
 
 SDL_Texture* tex_enemy;
 
@@ -22,11 +23,16 @@ Entity* EntityEnemy_create(float x, float y)
 	}
 
 	Entity* enemy = Entity_create();
+	if (!enemy) {
+		return NULL;
+	}
+
 	EntityEnemyData* data = calloc(1, sizeof(EntityEnemyData));
 	if (!data) {
 		free(enemy);
 		return NULL;
 	}
+	enemy->data = data;
 
 	enemy->type = ET_ENEMY;
 	enemy->rect = (Rectangle) {
@@ -46,7 +52,6 @@ Entity* EntityEnemy_create(float x, float y)
 		.x = HSPEED,
 		.y = 0
 	};
-	enemy->data = data;
 
 	enemy->add = EntityEnemy_add;
 	enemy->update = EntityEnemy_update;

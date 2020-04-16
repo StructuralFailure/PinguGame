@@ -69,49 +69,35 @@ void Game_draw(Game* game) {
 		.h = CM_CELL_HEIGHT
 	};
 
-	/* bit map: abcd 
-	 * a = bottom
-	 * b = right
-	 * c = top
-	 * d = left
-	 */
 
 	static bool has_dumped = false;
 
 	for (int y = 0; y < game->current_level->height; ++y) {
-			for (int x = 0; x < game->current_level->width; ++x) {
-				if (!Level_is_solid(game->current_level, x, y)) {
-					continue;
-				}
+		for (int x = 0; x < game->current_level->width; ++x) {
+			LevelCellTypeProperties* ct_properties = Level_get_cell_type_properties(game->current_level, x, y);
+			SDL_Texture* cell_texture = ct_properties->texture;
 
-				LevelCellTypeProperties* ct_properties = Level_get_cell_type_properties(game->current_level, x, y);
-				SDL_Texture* cell_texture = ct_properties->texture;
+			if (ct_properties->type == LCT_SOLID_BLOCK) {
+				/* change texture of solid block depending on its neighbors */
 
-				if (ct_properties->type == LCT_SOLID_BLOCK) {
-					/* change texture of solid block depending on its neighbors */
-					int tileset_index = 0;
-					tileset_index |= 1 * Level_is_solid(game->current_level, x - 1, y);
-					tileset_index |= 2 * Level_is_solid(game->current_level, x, y - 1);
-					tileset_index |= 4 * Level_is_solid(game->current_level, x + 1, y);
-					tileset_index |= 8 * Level_is_solid(game->current_level, x, y + 1);;
+				int tileset_index = 0;
+				tileset_index |= 1 * Level_is_solid(game->current_level, x - 1, y);
+				tileset_index |= 2 * Level_is_solid(game->current_level, x, y - 1);
+				tileset_index |= 4 * Level_is_solid(game->current_level, x + 1, y);
+				tileset_index |= 8 * Level_is_solid(game->current_level, x, y + 1);;
 
-					if (!has_dumped && x == 1 && y == 1) {
-						printf("%d\n", tileset_index);
-						has_dumped = true;
-						fflush(stdout);
-					}
-
-					sdl_rect_source.x = tileset_index * CM_CELL_WIDTH;
-				} else {
-					sdl_rect_source.x = 0;
-				}
-				
-
-				sdl_rect_dest.x = x * CM_CELL_WIDTH;
-				sdl_rect_dest.y = y * CM_CELL_HEIGHT;
-				SDL_RenderCopy(sdl_renderer, cell_texture, &sdl_rect_source, &sdl_rect_dest);
+				sdl_rect_source.x = tileset_index * CM_CELL_WIDTH;
+			} else {
+				sdl_rect_source.x = 0;
 			}
+
+			sdl_rect_dest.x = x * CM_CELL_WIDTH;
+			sdl_rect_dest.y = y * CM_CELL_HEIGHT;
+			SDL_RenderCopy(sdl_renderer, cell_texture, &sdl_rect_source, &sdl_rect_dest);
 		}
+	}
+
+	has_dumped = true;
 
 	/* call Entity objects' render functions */
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {

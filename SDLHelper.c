@@ -29,8 +29,8 @@ E_SDL SDLHelper_init(void)
 		return E_SDL_RENDERER;
 	}
 
+	printf("[SDL] initialized\n");
 	SDL_SetRenderDrawColor(sdl_renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-
 	SDL_RenderSetScale(sdl_renderer, RENDER_SCALE_FACTOR, RENDER_SCALE_FACTOR);
 
 	return E_SDL_SUCCESS;
@@ -45,29 +45,23 @@ void SDLHelper_quit(void)
 	sdl_window = NULL;
 
 	SDL_Quit();
+	printf("[SDL] quit\n");
 }
-
-
-SDL_Texture* SDLHelper_load_textures_from_grid(const char* path, int tex_width, int tex_height) {
-	return NULL;	
-}
-
 
 SDL_Texture* SDLHelper_load_texture(const char* path)
 {
-	SDL_Texture* texture = NULL;
-	SDL_Surface* loaded_surface = SDL_LoadBMP(path);
-
-	if (loaded_surface == NULL) {
+	SDL_Surface* surface = SDL_LoadBMP(path);
+	if (surface == NULL) {
 		printf("[SDL] unable to load image %s. error: %s\n", path, SDL_GetError());
-	} else {
-        texture = SDL_CreateTextureFromSurface(sdl_renderer, loaded_surface);
-		if (texture == NULL) {
-			printf("[SDL] unable to create texture from %s. error: %s\n", path, SDL_GetError());
-		}
+		return NULL;
+	} 
 
-		SDL_FreeSurface(loaded_surface);
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(sdl_renderer, surface);
+	if (texture == NULL) {
+		printf("[SDL] unable to create texture from %s. error: %s\n", path, SDL_GetError());
+		return NULL;
 	}
+	SDL_FreeSurface(surface);
 
 	printf("[SDL] loaded image and created texture from %s.\n", path);
 	return texture;

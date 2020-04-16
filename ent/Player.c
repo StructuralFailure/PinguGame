@@ -34,6 +34,14 @@ Entity* EntityPlayer_create()
 	if (!player) {
 		return NULL;
 	}
+
+	EntityPlayerData* data = calloc(1, sizeof(EntityPlayerData));
+	if (!data) {
+		free(player);
+		return NULL;
+	}
+	player->data = data;
+
 	player->type = ET_PLAYER;
 	player->rect = (Rectangle) { 
 		.position = {
@@ -52,11 +60,7 @@ Entity* EntityPlayer_create()
 	player->remove = EntityPlayer_remove;
 	player->collide = EntityPlayer_collide;
 
-	EntityPlayerData* data = calloc(1, sizeof(EntityPlayerData));
-	if (!data) {
-		free(player);
-		return NULL;
-	}
+
 	data->state = EPS_DEFAULT;
 	data->powerup_level = 123;
 	data->health = 456;
@@ -66,7 +70,6 @@ Entity* EntityPlayer_create()
 	};
 	data->facing = EPF_RIGHT;
 	data->jump_charge_counter = 0;
-	player->data = data;
 
 	return player;
 }
@@ -188,7 +191,7 @@ void EntityPlayer_update(Entity* entity)
 
 void EntityPlayer_collide(Entity* entity, Entity* entity_other)
 {
-	printf("[ collision detected ] type: %d\n", entity_other->type);
+	/*printf("[ collision detected ] type: %d\n", entity_other->type);*/
 }
 
 void EntityPlayer_draw(Entity* entity) 

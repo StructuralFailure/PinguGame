@@ -53,9 +53,9 @@ void init_cell_type_properties()
 	};
 	
 	cell_type_properties    [LCT_LADDER]        = (LCTProperties) {
-		.type = LCT_SOLID_BLOCK,
+		.type = LCT_LADDER,
 		.flags = 0,
-		.texture = SDLHelper_load_texture("assets/gfx/ladder.bmp");
+		.texture = SDLHelper_load_texture("assets/gfx/ladder.bmp")
 	};
 
 	cell_type_properties    [LCT_ITEM_BLOCK]    = (LCTProperties) {
@@ -101,10 +101,10 @@ Level* Level_create_from_file(const char* filename)
 	}
 	level->height = row_count;
 	level->width = max_column_count;
-	level->colmap = malloc(sizeof(LevelCellType*) * row_count);
+	level->colmap = calloc(sizeof(LevelCellType*), row_count);
 
 	for (int y = 0; y < row_count; ++y) {
-		level->colmap[y] = malloc(sizeof(LevelCellType) * max_column_count);
+		level->colmap[y] = calloc(sizeof(LevelCellType), max_column_count);
 	}
 
 	/* actually read level */
@@ -116,13 +116,22 @@ Level* Level_create_from_file(const char* filename)
 			++row;
 			col = 0;
 		} else {
-			if (c == '0') {
-				level->colmap[row][col] = LCT_EMPTY;
-			} else if (c == '1') {
-				level->colmap[row][col] = LCT_SOLID_BLOCK;
-			}
+			/* characters for '0' to '9' are guaranteed to be
+			 * contiguous in character set
+			 */
+			int cell_type = c - '0';
+			level->colmap[row][col] = cell_type;
 			++col;
 		}
+	}
+
+	/* dump level */
+	printf("[Level] loaded level from %s:\n", filename);
+	for (int y = 0; y < row_count; ++y) {
+		for (int x = 0; x < max_column_count; ++x) {
+			printf("%d ", level->colmap[y][x]);
+		}
+		printf("\n");
 	}
 
 	fclose(file);
