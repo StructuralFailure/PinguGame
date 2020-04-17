@@ -16,11 +16,27 @@ Game* Game_create()
 	if (!game) {
 		return NULL;
 	}
-	static bool textures_loaded = false;
-	if (!textures_loaded) {
-		tex_tileset_blocks = SDLHelper_load_texture("assets/gfx/tileset_blocks.bmp");
-		textures_loaded = true;
-	}
+
+	Viewport* viewport = Viewport_create();
+	viewport->game = game;
+	viewport->total = (Rectangle) {
+		.position = {
+			.x = 0,
+			.y = 0 
+		},
+		.size = {
+			.x = WINDOW_WIDTH,
+			.y = WINDOW_HEIGHT
+		}
+	};
+	viewport->visible = (Rectangle) {
+		.position = {
+			.x = 64,
+			.y = 64
+		},
+		.size = viewport->total.size
+	};
+	game->viewport = viewport;
 	return game;
 }
 
@@ -61,7 +77,7 @@ bool Game_remove_entity(Game* game, Entity* entity)
 
 
 void Game_draw(Game* game) {
-	if (!viewport) {
+	if (!game->viewport) {
 		return;
 	}
 	Viewport_draw(game->viewport);

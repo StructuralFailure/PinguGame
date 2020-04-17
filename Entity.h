@@ -19,9 +19,12 @@ struct Entity {
 	Rectangle rect; /* describes the collision rectangle */
 	Rectangle rect_prev; 
 
+	/* viewport support */
+	Direction (*get_direction)();
+
 	void (*add)(struct Entity* entity);
 	void (*update)(struct Entity* entity);
-	void (*draw)(struct Entity* entity);
+	void (*draw)(struct Entity* entity, Viewport* viewport);
 	void (*remove)(struct Entity* entity);
 	void (*collide)(struct Entity* entity, struct Entity* entity_collide);
 };

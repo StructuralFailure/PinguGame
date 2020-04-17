@@ -65,6 +65,7 @@ Entity* EntityPlayer_create()
 	player->draw = EntityPlayer_draw;
 	player->remove = EntityPlayer_remove;
 	player->collide = EntityPlayer_collide;
+	player->get_direction = EntityPlayer_viewport_get_direction;
 
 
 	data->state = EPS_DEFAULT;
@@ -236,10 +237,9 @@ void EntityPlayer_collide(Entity* entity, Entity* entity_other)
 	/*printf("[ collision detected ] type: %d\n", entity_other->type);*/
 }
 
-void EntityPlayer_draw(Entity* entity) 
+void EntityPlayer_draw(Entity* entity, Viewport* viewport) 
 {
 	Rectangle rect = entity->rect;
-	SDL_Rect sdl_rect = SDLHelper_get_sdl_rect(&rect);
 	EntityPlayerData* data = (EntityPlayerData*)(entity->data);
 	SDL_Texture* tex;
 	if (data->facing == EPF_RIGHT) {
@@ -247,13 +247,22 @@ void EntityPlayer_draw(Entity* entity)
 	} else {
 		tex = tex_player_left;
 	}
-	SDL_RenderCopy(sdl_renderer, tex, NULL, &sdl_rect);
+
+
+	Viewport_draw_texture(viewport, NULL, &rect, tex);
+	/*SDL_RenderCopy(sdl_renderer, tex, NULL, &sdl_rect);*/
 
 	/* change score text to display current position. */
 	snprintf(
 		data->entity_text_text, TEXT_SCORE_SIZE, "%03d %03d %d",
 		(int)rect.position.x, (int)rect.position.y, data->state
 	);
+}
+
+
+Direction EntityPlayer_viewport_get_direction(Entity* entity) 
+{
+	return 0;
 }
 
 

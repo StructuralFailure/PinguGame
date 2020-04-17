@@ -6,6 +6,7 @@
 #include "../Graphics.h"
 #include "../Entity.h"
 #include "../SDLHelper.h"
+#include "../Viewport.h"
 #include "Enemy.h"
 
 
@@ -88,10 +89,12 @@ void EntityEnemy_update(Entity* entity)
 }
 
 
-void EntityEnemy_draw(Entity* entity)
+void EntityEnemy_draw(Entity* entity, Viewport* viewport)
 {
-	SDL_Rect sdl_rect = SDLHelper_get_sdl_rect(&(entity->rect));
-	SDL_RenderCopy(sdl_renderer, tex_enemy, NULL, &sdl_rect);
+	Viewport_draw_texture(viewport, NULL, &(entity->rect), tex_enemy);
+
+	/*SDL_Rect sdl_rect = SDLHelper_get_sdl_rect(&(entity->rect));
+	SDL_RenderCopy(sdl_renderer, tex_enemy, NULL, &sdl_rect);*/
 }
 
 

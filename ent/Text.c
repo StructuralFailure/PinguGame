@@ -6,6 +6,7 @@
 #include "../Entity.h"
 #include "../Graphics.h"
 #include "../Game.h"
+#include "../Viewport.h"
 #include "Text.h"
 
 
@@ -46,7 +47,7 @@ Entity* EntityText_create(char* text)
 }
 
 
-void EntityText_draw(Entity* entity) 
+void EntityText_draw(Entity* entity, Viewport* viewport) 
 {
 	char* text = ((EntityTextData*)(entity->data))->text;
 	if (!text) {
@@ -85,6 +86,8 @@ void EntityText_draw(Entity* entity)
 
 		in_tileset_rect.position.x = tileset_x;
 		on_screen_rect.position.x = entity->rect.position.x + (CHARACTER_WIDTH * i);
+
+		Viewport_draw_texture(viewport, &in_tileset_rect, &on_screen_rect, tex_tileset);
 
 		SDL_Rect sdl_source_rect = SDLHelper_get_sdl_rect(&in_tileset_rect);
 		SDL_Rect sdl_dest_rect = SDLHelper_get_sdl_rect(&on_screen_rect);

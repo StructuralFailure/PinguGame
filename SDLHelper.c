@@ -69,6 +69,15 @@ SDL_Texture* SDLHelper_load_texture(const char* path)
 
 SDL_Rect SDLHelper_get_sdl_rect(const Rectangle* rect) 
 {
+	if (!rect) {
+		return (SDL_Rect) {
+			.x = -1,
+			.y = -1,
+			.w = 0,
+			.h = 0
+		};
+	}
+
 	SDL_Rect sdl_rect = {
 		.x = round(rect->position.x),
 		.y = round(rect->position.y),

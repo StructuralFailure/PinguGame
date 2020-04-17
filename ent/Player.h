@@ -2,6 +2,8 @@
 #define H_ENT_PLAYER
 
 #include "Text.h"
+#include "../Entity.h"
+#include "../Viewport.h"
 #include "../Graphics.h"
 
 
@@ -38,9 +40,10 @@ typedef struct EntityPlayerData {
 Entity* EntityPlayer_create();
 void EntityPlayer_add(Entity* entity);
 void EntityPlayer_update(Entity* entity);
-void EntityPlayer_draw(Entity* entity);
+void EntityPlayer_draw(Entity* entity, Viewport* viewport);
 void EntityPlayer_remove(Entity* entity);
 void EntityPlayer_collide(Entity* entity, Entity* entity_other);
+Direction EntityPlayer_viewport_get_direction(Entity* entity);
 
 
 #endif

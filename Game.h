@@ -12,6 +12,7 @@
 #define CM_CELL_WIDTH  16
 #define CM_CELL_HEIGHT 16
 
+
 typedef enum CollidedWith {
 	/* bit field as there can be multiple collisions in one step */
 	CW_NOTHING = 0,
@@ -20,14 +21,6 @@ typedef enum CollidedWith {
 	CW_RIGHT   = 4,
 	CW_BOTTOM  = 8,
 } CollidedWith;
-
-
-typedef enum Direction {
-	DIR_LEFT = 0,
-	DIR_UP,
-	DIR_RIGHT,
-	DIR_DOWN,
-} Direction;
 
 
 struct Game {

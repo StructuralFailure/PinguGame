@@ -3,6 +3,8 @@
 
 
 #include "../Graphics.h"
+#include "../Entity.h"
+#include "../Viewport.h"
 
 
 typedef enum EntityEnemyType {
@@ -19,7 +21,7 @@ typedef struct EntityEnemyData {
 Entity* EntityEnemy_create(float x, float y);
 void EntityEnemy_add(Entity* entity);
 void EntityEnemy_update(Entity* entity);
-void EntityEnemy_draw(Entity* entity);
+void EntityEnemy_draw(Entity* entity, Viewport* viewport);
 void EntityEnemy_remove(Entity* entity);
 
 
