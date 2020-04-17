@@ -87,17 +87,21 @@ void EntityText_draw(Entity* entity, Viewport* viewport)
 		in_tileset_rect.position.x = tileset_x;
 		on_screen_rect.position.x = entity->rect.position.x + (CHARACTER_WIDTH * i);
 
+		on_screen_rect.position.x += entity->game->viewport->visible.position.x;
+		on_screen_rect.position.y += entity->game->viewport->visible.position.y;
 		Viewport_draw_texture(viewport, &in_tileset_rect, &on_screen_rect, tex_tileset);
 
-		SDL_Rect sdl_source_rect = SDLHelper_get_sdl_rect(&in_tileset_rect);
+		/*SDL_Rect sdl_source_rect = SDLHelper_get_sdl_rect(&in_tileset_rect);
 		SDL_Rect sdl_dest_rect = SDLHelper_get_sdl_rect(&on_screen_rect);
-		SDL_RenderCopy(sdl_renderer, tex_tileset, &sdl_source_rect, &sdl_dest_rect);;
+		SDL_RenderCopy(sdl_renderer, tex_tileset, &sdl_source_rect, &sdl_dest_rect);*/
 	}
 }
 
 
 void EntityText_remove(Entity* entity)
 {
+	printf("[EntityText] removed and destroyed.\n");
+
 	EntityText_set_text(entity, NULL);
 	free(entity->data);
 	free(entity);

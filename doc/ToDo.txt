@@ -2,14 +2,13 @@
 
 (--- very important -- important - minor)
 
+--- Fix segmentation fault upon going out of bounds (x+ tested)
+    No idea where it occurs.
+
 --- Implement a state machine.
 
 --- Instead of using CM_CELL_WIDTH and CM_CELL_HEIGHT, add a field to
     the Game (or Level?) structure that determines the size of a cell.
-
---- Eliminate potential segmentation faults caused by an entity going
-    off-screen by removing all direct accesses to the collision map 
-    array. Use Level_is_solid(...) instead.
 
 -- Add Entity <-> Entity communication in the form of events.
 

@@ -85,6 +85,8 @@ Entity* EntityPlayer_create()
 void EntityPlayer_add(Entity* entity)
 {
 	printf("[EntityPlayer] added\n");
+	/* steal viewport */
+	entity->game->viewport->locked_onto = entity;
 	/* create text entity */
 	EntityPlayerData* data = (EntityPlayerData*)(entity->data);
 	data->entity_text = EntityText_create(text_score);
@@ -262,12 +264,19 @@ void EntityPlayer_draw(Entity* entity, Viewport* viewport)
 
 Direction EntityPlayer_viewport_get_direction(Entity* entity) 
 {
-	return 0;
+	EntityPlayerData* data = (EntityPlayerData*)(entity->data);
+	if (data->facing == EPF_RIGHT) {
+		return DIR_RIGHT;
+	} else {
+		return DIR_LEFT;
+	}
 }
 
 
 void EntityPlayer_remove(Entity* entity)
 {
+	printf("[EntityPlayer] removed and destroyed.\n");
+
 	EntityPlayerData* data = (EntityPlayerData*)(entity->data);
 	Game_remove_entity(entity->game, data->entity_text);
 	free(data->entity_text_text);

@@ -149,7 +149,7 @@ void Level_destroy(Level* level)
 
 LevelCellTypeProperties* Level_get_cell_type_properties(Level* level, int x, int y) {
 	if (x < 0 || x >= level->width ||
-		y < 0 || y >= level->height) {
+	    y < 0 || y >= level->height) {
 		return NULL;;
 	}
 	return &(cell_type_properties[level->colmap[y][x]]);
@@ -158,7 +158,7 @@ LevelCellTypeProperties* Level_get_cell_type_properties(Level* level, int x, int
 
 LevelCellTypeFlags Level_get_cell_type_flags(Level* level, int x, int y) {
 	if (x < 0 || x >= level->width ||
-		y < 0 || y >= level->height) {
+	    y < 0 || y >= level->height) {
 		return LCTF_INVALID;
 	}
 	/*LevelCellType cell_type = level->colmap[y][x];
@@ -172,7 +172,7 @@ LevelCellTypeFlags Level_get_cell_type_flags(Level* level, int x, int y) {
 bool Level_is_solid(Level* level, int x, int y) 
 {
 	if (x < 0 || x >= level->width ||
-		y < 0 || y >= level->height) {
+	    y < 0 || y >= level->height) {
 		return false;
 	}
 	return level->colmap[y][x] & LCTF_SOLID;

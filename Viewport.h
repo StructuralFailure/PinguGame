@@ -11,16 +11,17 @@
 
 typedef struct Viewport {
 	Game* game;
-	Entity* locked_on;
+	Entity* locked_onto;
 	Rectangle total;
 	Rectangle visible;
 	Vector2D camera_distance;
-	Vector2D camera_movement_speed;
+	Vector2D camera_speed;
 } Viewport;
 
 Viewport* Viewport_create();
 void Viewport_destroy(Viewport* viewport);
 void Viewport_draw_texture(Viewport* viewport, Rectangle* rect_source, Rectangle* rect_dest, SDL_Texture* texture);
 void Viewport_draw(Viewport* viewport);
+void Viewport_update(Viewport* viewport);
 
 #endif

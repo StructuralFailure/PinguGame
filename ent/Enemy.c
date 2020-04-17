@@ -100,6 +100,8 @@ void EntityEnemy_draw(Entity* entity, Viewport* viewport)
 
 void EntityEnemy_remove(Entity* entity)
 {
+	printf("[EntityEnemy] removed and destroyed.\n");
+
 	free(entity->data);
 	free(entity);
 }

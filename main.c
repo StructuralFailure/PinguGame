@@ -13,12 +13,11 @@
 #include "ent/Entities.h"
 
 #define START_TICK_RATE 60
-#define LEVEL_PATH "assets/lvl/test"
-
-
+#define LEVEL_PATH "assets/lvl/viewport_test"
 
 
 void game(void);
+
 
 int main(int argc, char** argv) 
 {
@@ -64,38 +63,8 @@ void game(void)
 		while (SDL_PollEvent(&e) != 0) {
 			if (e.type == SDL_QUIT) {
 				quit = 1;
-			} /*else if (e.type == SDL_KEYDOWN) {
-				switch (e.key.keysym.sym) {
-				case SDLK_LEFT:
-					move_x = -1;
-					break;
-				case SDLK_UP:
-					move_y = -1;
-					break;
-				case SDLK_RIGHT:
-					move_x = 1;
-					break;
-				case SDLK_DOWN:
-					move_y = 1;
-					break;
-				case SDLK_ESCAPE:
-					quit = 1;
-					break;
-				}
-			} else if (e.type == SDL_KEYUP) {
-				switch (e.key.keysym.sym) {
-				case SDLK_LEFT:
-				case SDLK_RIGHT:
-					move_x = 0;
-					break;
-				case SDLK_UP:
-				case SDLK_DOWN:
-					move_y = 0;
-					break;
-				}
-			}*/
+			} 
 		}
-		/* perform game tick if necessary */
 		clock_gettime(CLOCK_MONOTONIC, &time_current);
 		long us_per_tick = (long)(1000000 / tick_rate);
 		long us_last_tick = (time_last_tick.tv_sec * 1000000) + (time_last_tick.tv_nsec / 1000);
@@ -112,4 +81,6 @@ void game(void)
 		Game_draw(game);
 		SDL_RenderPresent(sdl_renderer);
 	}
+
+	Game_destroy(game);
 }

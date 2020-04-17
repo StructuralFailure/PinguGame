@@ -25,16 +25,23 @@ Game* Game_create()
 			.y = 0 
 		},
 		.size = {
-			.x = WINDOW_WIDTH,
-			.y = WINDOW_HEIGHT
+			.x = 320,
+			.y = 320
 		}
 	};
 	viewport->visible = (Rectangle) {
-		.position = {
-			.x = 64,
-			.y = 64
-		},
-		.size = viewport->total.size
+		.size = {
+			.x = 320,
+			.y = 320
+		}
+	};
+	viewport->camera_distance = (Vector2D) {
+		.x = 200,
+		.y = 160
+	};
+	viewport->camera_speed = (Vector2D) {
+		.x = 3.5,
+		.y = 3.5
 	};
 	game->viewport = viewport;
 	return game;
@@ -67,7 +74,6 @@ bool Game_remove_entity(Game* game, Entity* entity)
 			if (entity->remove) {
 				entity->remove(entity);
 			}
-			game->entities[i]->game = NULL;
 			game->entities[i] = NULL;
 			return true;
 		}
@@ -81,58 +87,6 @@ void Game_draw(Game* game) {
 		return;
 	}
 	Viewport_draw(game->viewport);
-	/* render collision map */
-
-#if 0
-	SDL_Rect sdl_rect_dest = {
-		.w = CM_CELL_WIDTH,
-		.h = CM_CELL_HEIGHT
-	};
-
-	SDL_Rect sdl_rect_source = {
-		.y = 0,
-		.w = CM_CELL_WIDTH,
-		.h = CM_CELL_HEIGHT
-	};
-
-
-	static bool has_dumped = false;
-
-	for (int y = 0; y < game->current_level->height; ++y) {
-		for (int x = 0; x < game->current_level->width; ++x) {
-			LevelCellTypeProperties* ct_properties = Level_get_cell_type_properties(game->current_level, x, y);
-			SDL_Texture* cell_texture = ct_properties->texture;
-
-			if (ct_properties->type == LCT_SOLID_BLOCK) {
-				/* change texture of solid block depending on its neighbors */
-
-				int tileset_index = 0;
-				tileset_index |= 1 * Level_is_solid(game->current_level, x - 1, y);
-				tileset_index |= 2 * Level_is_solid(game->current_level, x, y - 1);
-				tileset_index |= 4 * Level_is_solid(game->current_level, x + 1, y);
-				tileset_index |= 8 * Level_is_solid(game->current_level, x, y + 1);;
-
-				sdl_rect_source.x = tileset_index * CM_CELL_WIDTH;
-			} else {
-				sdl_rect_source.x = 0;
-			}
-
-			sdl_rect_dest.x = x * CM_CELL_WIDTH;
-			sdl_rect_dest.y = y * CM_CELL_HEIGHT;
-			SDL_RenderCopy(sdl_renderer, cell_texture, &sdl_rect_source, &sdl_rect_dest);
-		}
-	}
-
-	has_dumped = true;
-
-	/* call Entity objects' render functions */
-	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
-		Entity* ent = game->entities[i];
-		if (ent && ent->draw) {
-			ent->draw(ent);
-		}		
-	}
-#endif
 }
 
 void Game_update(Game* game) 
@@ -161,15 +115,25 @@ void Game_update(Game* game)
 			}
 		}
 	}
+
+	Viewport_update(game->viewport);
 }
 
 
+/* changes level and viewport */
 void Game_set_level(Game* game, Level* level) 
 {
 	if (game->current_level) {
 		Level_destroy(game->current_level);
 	}
 	game->current_level = level;
+
+	if (level && game->viewport) {
+		game->viewport->total.size = (Vector2D) {
+			.x = level->width * CM_CELL_WIDTH,
+			.y = level->height * CM_CELL_HEIGHT
+		};
+	}
 }
 
 
@@ -228,43 +192,7 @@ CollidedWith Game_move_until_collision(Game* game, Rectangle* rect, const Vector
 				rect_last_collision = Game_get_cell_rectangle(game, &current_cell);
 			}
 		}
-#if 0
-		Vector2DInt cells[4];
-		int cell_x = floor(rect->position.x / CM_CELL_WIDTH);
-		int cell_y = floor(rect->position.y / CM_CELL_HEIGHT);
 
-		/* gather cells that overlap with rect */
-		cells[0].x = cell_x;
-		cells[0].y = cell_y;
-
-		cells[1].x = cell_x;
-		cells[1].y = cell_y + 1;
-
-		cells[2].x = cell_x + 1;
-		cells[2].y = cell_y;
-
-		cells[3].x = cell_x + 1;
-		cells[3].y = cell_y + 1;
-
-		
-
-		is_colliding = false;
-		for (int i = 0; i < 4; ++i) {
-			printf("checking cell %d: ( x = %d | y = %d ]\n", i, cells[i].x, cells[i].y);
-
-
-			if (!Level_is_solid(game->current_level, cells[i].x, cells[i].y)) {
-				/* cell not solid -> do not check for collisions */
-				continue;
-			}
-			Rectangle cell_rect = Game_get_cell_rectangle(game, &cells[i]);
-			if (Rectangle_overlap(&cell_rect, rect)) {
-				is_colliding = true;
-				has_collided = true;
-				rect_last_collision = cell_rect;
-			}
-		}
-#endif
 		if (is_colliding) {
 			rect->position.x -= delta_pos_norm.x;
 			rect->position.y -= delta_pos_norm.y;
@@ -413,6 +341,15 @@ CollidedWith Game_move(Game* game, Entity* entity, Vector2D* delta_pos)
 void Game_destroy(Game* game)
 {
 	/* TODO: call all entities' remove functions */
+	free(game->viewport);
+	free(game->current_level);
+	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
+		Entity* ent = game->entities[i];
+		if (!(ent && ent->remove)) {
+			continue;
+		}
+		ent->remove(ent);
+	}
 	free(game);
 }
 

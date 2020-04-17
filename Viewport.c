@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <math.h>
+
 
 #include <SDL2/SDL.h>
 #include "SDLHelper.h"
@@ -6,9 +8,7 @@
 #include "Game.h"
 #include "Entity.h"
 #include "Level.h"
-
-
-void update(Viewport* viewport);
+#include "Util.h"
 
 
 Viewport* Viewport_create(Game* game) 
@@ -42,20 +42,7 @@ void Viewport_draw_texture(Viewport* viewport, Rectangle* rect_source, Rectangle
 
 void Viewport_draw(Viewport* viewport) 
 {
-	update(viewport);
-
 	Game* game = viewport->game;
-
-	/*SDL_Rect sdl_rect_dest = {
-		.w = CM_CELL_WIDTH,
-		.h = CM_CELL_HEIGHT
-	};
-
-	SDL_Rect sdl_rect_source = {
-		.y = 0,
-		.w = CM_CELL_WIDTH,
-		.h = CM_CELL_HEIGHT
-	};*/
 
 	Rectangle rect_dest = {
 		.size = {
@@ -73,9 +60,6 @@ void Viewport_draw(Viewport* viewport)
 			.y = CM_CELL_HEIGHT
 		}
 	};
-
-
-	static bool has_dumped = false;
 
 	for (int y = 0; y < game->current_level->height; ++y) {
 		for (int x = 0; x < game->current_level->width; ++x) {
@@ -105,8 +89,6 @@ void Viewport_draw(Viewport* viewport)
 		}
 	}
 
-	has_dumped = true;
-
 	/* call Entity objects' render functions */
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
 		Entity* ent = game->entities[i];
@@ -117,14 +99,69 @@ void Viewport_draw(Viewport* viewport)
 }
 
 
-void update(Viewport* viewport)
+void Viewport_update(Viewport* viewport)
 {
-	/* this function updates visible and inner */
-	if (!viewport->locked_on) {
+	/* TODO: take viewport->total into account.
+	 *       add support for vertical scrolling.
+	 *       fix the damn flickering.
+	 */
+
+	Entity* entity = viewport->locked_onto;
+	if (!entity) {
 		return;
 	}
 
-	//Rectangle* rect = &(viewport->locked_on->rect);
+	Rectangle* rect_entity = &(entity->rect);
+	Direction entity_direction = entity->get_direction();
+
+	Vector2D pos_entity_center = {
+		.x = round(rect_entity->position.x + (rect_entity->size.x / 2)),
+		.y = round(rect_entity->position.y + (rect_entity->size.y / 2))
+	};
+
+	if (entity_direction & DIR_RIGHT) {
+		float cam_endpoint_x = pos_entity_center.x + viewport->camera_distance.x;
+		if (cam_endpoint_x > viewport->visible.position.x + viewport->visible.size.x) {
+			float viewport_x_new = min(
+				pos_entity_center.x + viewport->camera_distance.x - viewport->visible.size.x,
+				viewport->total.position.x + viewport->total.size.x - viewport->visible.size.x
+			);
+			float viewport_x_diff = viewport_x_new - viewport->visible.position.x;
+			viewport->visible.position.x += min(viewport->camera_speed.x, viewport_x_diff);
+
+		}
+	} else if (entity_direction & DIR_LEFT) {
+		float cam_endpoint_x = pos_entity_center.x - viewport->camera_distance.x;
+		if (cam_endpoint_x < viewport->visible.position.x) {
+			float viewport_x_new = max(
+				pos_entity_center.x - viewport->camera_distance.x,
+				viewport->total.position.x
+			);
+			float viewport_x_diff = viewport->visible.position.x - viewport_x_new;
+			viewport->visible.position.x -= min(viewport->camera_speed.x, viewport_x_diff);
+		}
+	} else if (entity_direction & DIR_UP) {
+		float cam_endpoint_y = pos_entity_center.y + viewport->camera_distance.y;
+		if (cam_endpoint_y > viewport->visible.position.y + viewport->visible.size.y) {
+			float viewport_y_new = min(
+				pos_entity_center.y + viewport->camera_distance.y - viewport->visible.size.y,
+				viewport->total.position.y + viewport->total.size.y - viewport->visible.size.y
+			);
+			float viewport_y_diff = viewport_y_new - viewport->visible.position.y;
+			viewport->visible.position.y += min(viewport->camera_speed.y, viewport_y_diff);
+		}
+	} else if (entity_direction & DIR_DOWN) {
+		float cam_endpoint_y = pos_entity_center.y - viewport->camera_distance.y;
+		if (cam_endpoint_y < viewport->visible.position.y) {
+			float viewport_y_new = max(
+				pos_entity_center.y - viewport->camera_distance.y,
+				viewport->total.position.y
+			);
+			float viewport_y_diff = viewport->visible.position.y - viewport_y_new;
+			viewport->visible.position.y -= min(viewport->camera_speed.y, viewport_y_diff);
+		}
+	}
+
 
 
 }
