@@ -6,6 +6,7 @@
 #include "Entity.h"
 #include "Level.h"
 #include "Graphics.h"
+#include "Viewport.h"
 
 #define MAX_ENTITY_COUNT 32
 #define CM_CELL_WIDTH  16
@@ -30,7 +31,9 @@ typedef enum Direction {
 
 
 struct Game {
+	/* TODO: replace all occurrences of current_level with level. */
 	Level* current_level;
+	Viewport* viewport;
 	Entity* entities[MAX_ENTITY_COUNT];
 	int entity_count;
 };

@@ -7,8 +7,7 @@
 #include "Level.h"
 #include "Graphics.h"
 #include "SDLHelper.h"
-
-SDL_Texture* tex_tileset_blocks;
+#include "Viewport.h"
 
 
 Game* Game_create()
@@ -62,8 +61,13 @@ bool Game_remove_entity(Game* game, Entity* entity)
 
 
 void Game_draw(Game* game) {
+	if (!viewport) {
+		return;
+	}
+	Viewport_draw(game->viewport);
 	/* render collision map */
 
+#if 0
 	SDL_Rect sdl_rect_dest = {
 		.w = CM_CELL_WIDTH,
 		.h = CM_CELL_HEIGHT
@@ -112,6 +116,7 @@ void Game_draw(Game* game) {
 			ent->draw(ent);
 		}		
 	}
+#endif
 }
 
 void Game_update(Game* game) 
@@ -270,7 +275,7 @@ CollidedWith Game_move_until_collision(Game* game, Rectangle* rect, const Vector
 			return CW_BOTTOM;
 		} else if (rect->position.y + rect->size.y <= rect_last_collision.position.y) {
 			/* since collision checks with an entity's overlapping cells are evaluated from
-			 * top to bottom and there's no early exit of the loop (should probably FIXME this),
+			 * top to bottom and there's no early exit of the loop (TODO ?),
 			 * in the case of collision with multiple cells, the bottom-most cell will be the
 			 * one the engine sees as the point of last collision. this leads to the following
 			 * edge case:
@@ -288,7 +293,8 @@ CollidedWith Game_move_until_collision(Game* game, Rectangle* rect, const Vector
 			 * for lateral collisions, which do not impede vertical movement.
 			 * in case A is not a solid cell, the engine will register the collision as a
 			 * top collision, allowing the movement to complete its horizontal part. this means
-			 * that if an entity hits an edge perfectly, it will be treated as if it had hit the top.
+			 * that if an entity hits an edge perfectly and there is space above it, then
+			 * it will be treated as if it had hit the top.
 			 */
 
 			/* calc = cell above last collision */
@@ -390,6 +396,7 @@ CollidedWith Game_move(Game* game, Entity* entity, Vector2D* delta_pos)
 
 void Game_destroy(Game* game)
 {
+	/* TODO: call all entities' remove functions */
 	free(game);
 }
 
@@ -437,48 +444,6 @@ RectangleInt Game_get_overlapping_cells(Game* game, Rectangle* rect)
 		}
 	};
 
-}
-
-/* returns the number of overlapping cells that were found.
- * stores the first [output_size] of them in [output].
- */
-int DEPRECATED_Game_get_overlapping_cells(Game* game, Rectangle* rect, Vector2DInt* output, int output_size) 
-{
-	/* game/level currently unused.
-	 * planning to refactor to accomodate for different cell dimensions. */
-	Level* level = game->current_level;
-
-	Vector2DInt cell_topleft = {
-		.x = rect->position.x / CM_CELL_WIDTH,
-		.y = rect->position.y / CM_CELL_HEIGHT
-	};
-
-	Vector2DInt max_cell_count = {
-		.x = rect->size.x / CM_CELL_WIDTH + 1,
-		.y = rect->size.y / CM_CELL_HEIGHT + 1
-	};
-
-	int i = 0;
-	for (int y = 0; y < max_cell_count.y; ++y) {
-		for (int x = 0; x < max_cell_count.x; ++x) {
-			Vector2DInt cell = {
-				.x = cell_topleft.x + x,
-				.y = cell_topleft.y + y
-			};
-			Rectangle cell_rect = Game_get_cell_rectangle(game, &cell);
-
-			if (Rectangle_overlap(rect, &cell_rect)) {
-				output[i].x = cell.x;
-				output[i].y = cell.y;
-				++i;
-				if (i >= output_size) {
-					return i - 1;
-				}
-			}
-		}
-	}
-
-	return i;
 }
 
 
