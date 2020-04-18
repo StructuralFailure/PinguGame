@@ -113,7 +113,7 @@ void EntityPlayer_update(Entity* entity)
 		 */
 
 		/* gravity */
-		data->velocity.y = min(data->velocity.y + 0.15, 3);
+		data->velocity.y = min(data->velocity.y + 0.15, 4.5);
 
 		bool moving_horizontally = false;
 		if (keystate[SDL_SCANCODE_LEFT]) {
@@ -275,11 +275,40 @@ Direction EntityPlayer_viewport_get_direction(Entity* entity)
 
 void EntityPlayer_remove(Entity* entity)
 {
-	printf("[EntityPlayer] removed and destroyed.\n");
-
 	EntityPlayerData* data = (EntityPlayerData*)(entity->data);
+	entity->game->viewport->locked_onto = NULL;
 	Game_remove_entity(entity->game, data->entity_text);
 	free(data->entity_text_text);
 	free(data);
 	free(entity);
+
+	printf("[EntityPlayer] removed and destroyed.\n");
+}
+
+
+bool EntityPlayer_serialize(Entity* entity, char* output)
+{
+	return false;
+}
+
+
+Entity* EntityPlayer_deserialize(char* input) 
+{
+	/* format:
+	 * type posx posy
+	 */
+	Entity* player = EntityPlayer_create();
+	if (!player) {
+		return NULL;
+	}
+
+	EntityType type;
+
+	if (sscanf(input, "%d %f %f", &type, &(player->rect.position.x), &(player->rect.position.y)) != 3) {
+		printf("[Player] deserialize: invalid argument count\n");
+		return NULL;
+	}
+
+	printf("[Player] deserialized");
+	return player;
 }

@@ -45,5 +45,9 @@ void EntityPlayer_remove(Entity* entity);
 void EntityPlayer_collide(Entity* entity, Entity* entity_other);
 Direction EntityPlayer_viewport_get_direction(Entity* entity);
 
+/* saving and loading */
+bool EntityPlayer_serialize(Entity* entity, char* output);
+Entity* EntityPlayer_deserialize(char* input);
+
 
 #endif

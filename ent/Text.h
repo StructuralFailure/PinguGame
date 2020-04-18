@@ -16,5 +16,9 @@ void EntityText_remove(Entity* entity);
 
 void EntityText_set_text(Entity* entity, char* text);
 
+/* saving and loading */
+bool EntityText_serialize(Entity* entity, char* output);
+Entity* EntityText_deserialize(char* input);
+
 
 #endif

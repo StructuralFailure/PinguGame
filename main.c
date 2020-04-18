@@ -11,16 +11,22 @@
 #include "Game.h"
 #include "Entity.h"
 #include "ent/Entities.h"
+#include "World.h"
 
 #define START_TICK_RATE 60
 #define LEVEL_PATH "assets/lvl/viewport_test"
 
 
+void test_world_loading(void);
 void game(void);
 
 
 int main(int argc, char** argv) 
 {
+	test_world_loading();
+	return 0;
+
+
 	/* SDL stuff */
 	E_SDL sdl_e;
 	if ((sdl_e = SDLHelper_init()) != E_SDL_SUCCESS) {
@@ -34,10 +40,27 @@ int main(int argc, char** argv)
 }
 
 
+void test_world_loading(void) 
+{
+	World* world = World_load_from_path("assets/lvl/entity_test.lvl", false);
+	if (!world) {
+		printf("[main] failed to load world.\n");
+		return;
+	}
+
+	printf(
+		"level [ w = %d | h = %d ] entity type = %d\n", 
+		world->level->width, world->level->height, world->entities[0]->type
+	);
+	World_destroy(world);
+}
+
+
 void game(void) 
 {
+	#if 0
 	Game* game = Game_create();
-	Level* level = Level_create_from_file(LEVEL_PATH);
+	Level* level = Level_create_from_path(LEVEL_PATH);
 	if (!level) {
 		fprintf(stderr, "[game] failed to load level from %s.\n", LEVEL_PATH);
 		return;
@@ -45,7 +68,7 @@ void game(void)
 	Game_set_level(game, level);
 
 	Entity* entity_player = EntityPlayer_create();
-	Entity* entity_enemy = EntityEnemy_create(32, 32);
+	Entity* entity_enemy = EntityEnemy_create();
 
 	Game_add_entity(game, entity_player);
 	Game_add_entity(game, entity_enemy);
@@ -83,4 +106,5 @@ void game(void)
 	}
 
 	Game_destroy(game);
+	#endif
 }

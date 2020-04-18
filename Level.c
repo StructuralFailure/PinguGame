@@ -14,23 +14,6 @@ typedef struct LevelCellTypeProperties LCTProperties;
 
 LevelCellTypeProperties* cell_type_properties;
 
-void init_cell_type_properties();
-
-
-#if 0
-LevelCellTypeFlags cell_type_flags[__LCT_COUNT] = {
-	/* 0 = empty cell */
-	0,
-	/* 1 = solid block */
-	LCTF_SOLID,
-	/* 2 = ladder */
-	0,
-	/* 3 = item block */
-	LCTF_SOLID
-};
-#endif
-
-
 
 void init_cell_type_properties() 
 {
@@ -66,14 +49,10 @@ void init_cell_type_properties()
 }
 
 
-Level* Level_create_from_file(const char* filename) 
+Level* Level_load_from_file(FILE* file) 
 {
 	init_cell_type_properties();
 
-	FILE* file = fopen(filename, "r");
-	if (!file) {
-		return NULL;
-	}
 	/* determine width and height of level */
 	int row_count = 1;
 	int max_column_count = 0;
@@ -82,6 +61,10 @@ Level* Level_create_from_file(const char* filename)
 	int c;
 	while ((c = fgetc(file)) != EOF) {
 		if (c == '\n') {
+			if (newline_terminated) {
+				/* second new line encountered: stop parsing */
+				break;
+			}
 			newline_terminated = true;
 			cur_column_count = 0;
 			++row_count;
@@ -114,6 +97,9 @@ Level* Level_create_from_file(const char* filename)
 	while ((c = fgetc(file)) != EOF) {
 		if (c == '\n') {
 			++row;
+			if (row >= row_count) {
+				break;
+			}
 			col = 0;
 		} else {
 			/* characters for '0' to '9' are guaranteed to be
@@ -126,7 +112,6 @@ Level* Level_create_from_file(const char* filename)
 	}
 
 	/* dump level */
-	printf("[Level] loaded level from %s:\n", filename);
 	for (int y = 0; y < row_count; ++y) {
 		for (int x = 0; x < max_column_count; ++x) {
 			printf("%d ", level->colmap[y][x]);
@@ -134,9 +119,21 @@ Level* Level_create_from_file(const char* filename)
 		printf("\n");
 	}
 
+	return level;
+}
+
+
+Level* Level_load_from_path(const char* filename) 
+{
+	FILE* file = fopen(filename, "r");
+	if (!file) {
+		return NULL;
+	}
+	Level* level = Level_load_from_file(file);
 	fclose(file);
 	return level;
 }
+
 
 void Level_destroy(Level* level)
 {

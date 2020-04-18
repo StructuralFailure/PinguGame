@@ -37,7 +37,8 @@ typedef struct Level {
 } Level;
 
 
-Level* Level_create_from_file(const char* filename);
+Level* Level_load_from_path(const char* filename);
+Level* Level_load_from_file(FILE* file);
 void Level_destroy(Level* level);
 
 bool Level_is_solid(Level* level, int x, int y);

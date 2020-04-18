@@ -17,7 +17,7 @@
 SDL_Texture* tex_enemy;
 
 
-Entity* EntityEnemy_create(float x, float y) 
+Entity* EntityEnemy_create() 
 {
 	if (!tex_enemy) {
 		tex_enemy = SDLHelper_load_texture("assets/gfx/enemy.bmp");
@@ -38,8 +38,8 @@ Entity* EntityEnemy_create(float x, float y)
 	enemy->type = ET_ENEMY;
 	enemy->rect = (Rectangle) {
 		.position = {
-			.x = x,
-			.y = y
+			.x = 0,
+			.y = 0
 		},
 		.size = {
 			.x = 16,
@@ -104,4 +104,32 @@ void EntityEnemy_remove(Entity* entity)
 
 	free(entity->data);
 	free(entity);
+}
+
+
+bool EntityEnemy_serialize(Entity* entity, char* output)
+{
+	return false;
+}
+
+
+Entity* EntityEnemy_deserialize(char* input) 
+{
+	/* format:
+	 * type posx posy
+	 */
+	Entity* enemy = EntityEnemy_create();
+	if (!enemy) {
+		return NULL;
+	}
+
+	EntityType type;
+
+	if (sscanf(input, "%d %f %f", &type, &(enemy->rect.position.x), &(enemy->rect.position.y)) != 3) {
+		printf("[Enemy] deserialize: invalid argument count\n");
+		return NULL;
+	}
+
+	printf("[Enemy] deserialized");
+	return enemy;
 }

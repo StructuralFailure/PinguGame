@@ -8,9 +8,12 @@
 
 
 typedef enum EntityType {
-	ET_PLAYER = 1,
-	ET_ENEMY,
+	ET_PLAYER = 0,
+	ET_ENEMY  = 1,
+	ET_TEXT   = 2,
+	__ET_COUNT
 } EntityType;
+
 
 struct Entity {
 	EntityType type;

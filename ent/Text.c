@@ -36,6 +36,8 @@ Entity* EntityText_create(char* text)
 	}
 	entity->data = data;
 
+	entity->type = ET_TEXT;
+
 	entity->draw = EntityText_draw;
 	entity->remove = EntityText_remove;
 
@@ -112,4 +114,16 @@ void EntityText_set_text(Entity* entity, char* text)
 {
 	EntityTextData* data = (EntityTextData*)(entity->data);
 	data->text = text;
+}
+
+
+bool EntityText_serialize(Entity* entity, char* output) 
+{
+	return false;
+}
+
+
+Entity* EntityText_deserialize(char* input) 
+{
+	return NULL;
 }

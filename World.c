@@ -1,62 +1,139 @@
-#include <stdlib.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
-#include <SDL2/SDL.h>
-#include "Game.h"
-#include "Entity.h"
+#include "World.h"
 #include "Level.h"
-#include "Graphics.h"
-#include "SDLHelper.h"
+#include "Entity.h"
 #include "Viewport.h"
+#include "ent/Entities.h"
 
 
-Game* Game_create()
+#define MAX_ENTITY_COUNT 32
+
+
+/* what in the ever-loving fuck? */
+bool (*entity_serializers[__ET_COUNT])(Entity* entity, char* output) = {
+	[ET_PLAYER] = EntityPlayer_serialize,
+	[ET_ENEMY]  = EntityEnemy_serialize,
+	[ET_TEXT]  =  EntityText_serialize
+};
+
+Entity* (*entity_deserializers[__ET_COUNT])(char* string) = {
+	[ET_PLAYER] = EntityPlayer_deserialize,
+	[ET_ENEMY]  = EntityEnemy_deserialize,
+	[ET_TEXT]   = EntityText_deserialize
+};
+
+
+World* World_load_from_path(const char* file_path, bool load_entities) 
 {
-	Game* game = calloc(1, sizeof(Game));
-	if (!game) {
-		return NULL;
+	int error_number = 0;
+
+	FILE* file = fopen(file_path, "r");
+	if (!file) {
+		error_number = 1;
+		goto fail1;
+	}
+	World* world = calloc(1, sizeof(World));
+	if (!world) {
+		error_number = 2;
+		goto fail2;
+	}
+	world->level = Level_load_from_file(file);
+	if (!world->level) {
+		error_number = 3;
+		goto fail3;
+	}
+	world->viewport = Viewport_create();
+	if (!world->viewport) {
+		error_number = 4;
+		goto fail4;
 	}
 
-	Viewport* viewport = Viewport_create();
-	viewport->game = game;
-	viewport->total = (Rectangle) {
-		.position = {
-			.x = 0,
-			.y = 0 
-		},
-		.size = {
-			.x = 320,
-			.y = 320
+	if (load_entities) {
+		char line_buffer[256];
+
+		while (fgets(line_buffer, sizeof(line_buffer), file)) {
+			int entity_id;
+			sscanf(line_buffer, "%d ", &entity_id);
+
+			if (entity_id < 0 || entity_id >= __ET_COUNT) {
+				printf("[World] loading: invalid entity id %d\n", entity_id);
+				continue;
+			}
+
+			if (!entity_deserializers[entity_id]) {
+				printf("[World] loading: no deserializer for entity with id %d.\n", entity_id);
+				continue;
+			}
+
+			Entity* entity = (entity_deserializers[entity_id])(line_buffer);
+			if (!entity) {
+				printf("[World] loading: failed to deserialize entity with id %d.\n", entity_id);
+				continue; 
+			}
+
+			printf("[World] loading: adding entity with id %d.", entity_id);
+			World_add_entity(world, entity);
 		}
-	};
-	viewport->visible = (Rectangle) {
-		.size = {
-			.x = 320,
-			.y = 320
-		}
-	};
-	viewport->camera_distance = (Vector2D) {
-		.x = 200,
-		.y = 160
-	};
-	viewport->camera_speed = (Vector2D) {
-		.x = 3.5,
-		.y = 3.5
-	};
-	game->viewport = viewport;
-	return game;
+	}
+
+	fclose(file);
+	return world;
+
+	/* error handling */
+fail4:	Level_destroy(world->level);
+fail3:  free(world);
+fail2:  fclose(file);
+fail1:	printf("[World] loading: failed to load from %s. error number: %d\n", file_path, error_number);
+	return NULL;
 }
 
-/* tries to add an entity to the first available slot.
- * if there are no vacant slots, the entity is not added and false is returned,
- * otherwise the entity is added and true is returned.
- */
-bool Game_add_entity(Game* game, Entity* entity)
+
+void World_draw(World* world) 
+{
+	if (!world->viewport) {
+		return;
+	}
+	Viewport_draw(world->viewport);
+}
+
+void World_update(World* world) 
+{
+	/* call Entity objects' update functions */
+	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
+		Entity* ent = world->entities[i];
+		if (ent && ent->update) {
+			ent->update(ent);
+		}
+	}
+
+	/* check for collisions */
+	for (int ea_i = 0; ea_i < MAX_ENTITY_COUNT; ++ea_i) {
+		Entity* ea = world->entities[ea_i];
+		if (!(ea && ea->collide)) {
+			continue;
+		}
+		for (int eb_i = 0; eb_i < MAX_ENTITY_COUNT; ++eb_i) {
+			Entity* eb = world->entities[eb_i];
+			if ((ea_i == eb_i) || !eb) {
+				continue;
+			}
+			if (Rectangle_overlap(&(eb->rect), &(ea->rect))) {
+				ea->collide(ea, eb);
+			}
+		}
+	}
+
+	Viewport_update(world->viewport);
+}
+
+bool World_add_entity(World* world, Entity* entity)
 {
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
-		if (!game->entities[i]) {
-			entity->game = game;
-			game->entities[i] = entity;
+		if (!world->entities[i]) {
+			entity->game = world->game;
+			world->entities[i] = entity;
 			if (entity->add) {
 				entity->add(entity);
 			}
@@ -67,14 +144,14 @@ bool Game_add_entity(Game* game, Entity* entity)
 }
 
 
-bool Game_remove_entity(Game* game, Entity* entity)
+bool World_remove_entity(World* world, Entity* entity)
 {
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
-		if (game->entities[i] == entity) {
+		if (world->entities[i] == entity) {
 			if (entity->remove) {
 				entity->remove(entity);
 			}
-			game->entities[i] = NULL;
+			world->entities[i] = NULL;
 			return true;
 		}
 	}
@@ -82,55 +159,16 @@ bool Game_remove_entity(Game* game, Entity* entity)
 }
 
 
-void Game_draw(Game* game) 
-{
-	if (!game->viewport) {
-		return;
-	}
-	Viewport_draw(game->viewport);
-}
-
-void Game_update(Game* game) 
-{
-	/* call Entity objects' update functions */
-	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
-		Entity* ent = game->entities[i];
-		if (ent && ent->update) {
-			ent->update(ent);
-		}
-	}
-
-	/* check for collisions */
-	for (int ea_i = 0; ea_i < MAX_ENTITY_COUNT; ++ea_i) {
-		Entity* ea = game->entities[ea_i];
-		if (!(ea && ea->collide)) {
-			continue;
-		}
-		for (int eb_i = 0; eb_i < MAX_ENTITY_COUNT; ++eb_i) {
-			Entity* eb = game->entities[eb_i];
-			if ((ea_i == eb_i) || !eb) {
-				continue;
-			}
-			if (Rectangle_overlap(&(eb->rect), &(ea->rect))) {
-				ea->collide(ea, eb);
-			}
-		}
-	}
-
-	Viewport_update(game->viewport);
-}
-
-
 /* changes level and viewport */
-void Game_set_level(Game* game, Level* level) 
+void World_set_level(World* world, Level* level) 
 {
-	if (game->current_level) {
-		Level_destroy(game->current_level);
+	if (world->level) {
+		Level_destroy(world->level);
 	}
-	game->current_level = level;
+	world->level = level;
 
-	if (level && game->viewport) {
-		game->viewport->total.size = (Vector2D) {
+	if (level && world->viewport) {
+		world->viewport->total.size = (Vector2D) {
 			.x = level->width * CM_CELL_WIDTH,
 			.y = level->height * CM_CELL_HEIGHT
 		};
@@ -138,13 +176,7 @@ void Game_set_level(Game* game, Level* level)
 }
 
 
-/* attempts to move a Rectangle object's position by a specific amount.
- * ceases movement when a solid cell of the collision map is hit.
- *
- * returns which edge (sg.) of a solid cell was collided with or 0 (CW_NONE)
- * if no collision occurred.
- */
-CollidedWith Game_move_until_collision(Game* game, Rectangle* rect, const Vector2D* delta_pos) 
+CollidedWith World_move_until_collision(World* world, Rectangle* rect, const Vector2D* delta_pos) 
 {
 	float delta_length = sqrt(delta_pos->x * delta_pos->x + delta_pos->y * delta_pos->y);
 	Vector2D delta_pos_norm = {
@@ -173,7 +205,7 @@ CollidedWith Game_move_until_collision(Game* game, Rectangle* rect, const Vector
 		/* (should be done, gotta test) TODO: 
 		 * add support for rectangles bigger than the cells' size
 		 */
-		RectangleInt cells = Game_get_overlapping_cells(game, rect);
+		RectangleInt cells = World_get_overlapping_cells(world, rect);
 
 		is_colliding = false;
 		for (int dy = 0; dy < cells.size.y; ++dy) {
@@ -183,14 +215,14 @@ CollidedWith Game_move_until_collision(Game* game, Rectangle* rect, const Vector
 					.y = cells.position.y + dy
 				};
 
-				if (!Level_is_solid(game->current_level, current_cell.x, current_cell.y)) {
+				if (!Level_is_solid(world->level, current_cell.x, current_cell.y)) {
 					/* cell not solid -> no collision */
 					continue;
 				}
 
 				is_colliding = true;
 				has_collided = true;
-				rect_last_collision = Game_get_cell_rectangle(game, &current_cell);
+				rect_last_collision = World_get_cell_rectangle(world, &current_cell);
 			}
 		}
 
@@ -245,7 +277,7 @@ CollidedWith Game_move_until_collision(Game* game, Rectangle* rect, const Vector
 			/* calc = cell above last collision */
 			int calc_x = rect_last_collision.position.x / CM_CELL_WIDTH;
 			int calc_y = rect_last_collision.position.y / CM_CELL_HEIGHT - 1;
-			if (!Level_is_solid(game->current_level, calc_x, calc_y)) {
+			if (!Level_is_solid(world->level, calc_x, calc_y)) {
 				rect->position.y = rect_last_collision.position.y - rect->size.y;
 				return CW_TOP;
 			}
@@ -262,27 +294,6 @@ CollidedWith Game_move_until_collision(Game* game, Rectangle* rect, const Vector
 	return CW_NOTHING;
 }
 
-/* DEBUG METHOD
- */
-void print_collision(CollidedWith cw) 
-{
-	if (cw & CW_TOP) {
-		printf("top ");
-	} else if (cw & CW_BOTTOM) {
-		printf("bottom ");
-	}
-
-	if (cw & CW_LEFT) {
-		printf("left");
-	} else if (cw & CW_RIGHT) {
-		printf("right");
-	}
-
-	printf("\n");
-	fflush(stdout);
-}
-
-
 /* attempts to move a Rectangle object.
  * will continue movement even when a collision is encountered,
  * but will not pass through solid cells attempting to do so.
@@ -290,14 +301,14 @@ void print_collision(CollidedWith cw)
  * returns, in case of collision, the edge or edges of the solid
  * cell or cells that were run into.
  */
-CollidedWith Game_move(Game* game, Entity* entity, Vector2D* delta_pos) 
+CollidedWith World_move(World* world, Entity* entity, Vector2D* delta_pos) 
 {
 	Rectangle rect_start = entity->rect;
 	Vector2D rect_start_pos = entity->rect.position;
 
 
 	/* first part of movement */
-	CollidedWith collided_with = Game_move_until_collision(game, &(entity->rect), delta_pos);
+	CollidedWith collided_with = World_move_until_collision(world, &(entity->rect), delta_pos);
 	/*if (collided_with) {
 		printf("step 1: ");
 		print_collision(collided_with);	
@@ -313,7 +324,7 @@ CollidedWith Game_move(Game* game, Entity* entity, Vector2D* delta_pos)
 			.x = 0,
 			.y = remaining_y
 		};
-		collided_with |= Game_move_until_collision(game, &(entity->rect), &remaining_delta_pos);
+		collided_with |= World_move_until_collision(world, &(entity->rect), &remaining_delta_pos);
 		break;
 	}
 	case CW_TOP:
@@ -324,7 +335,7 @@ CollidedWith Game_move(Game* game, Entity* entity, Vector2D* delta_pos)
 			.x = remaining_x,
 			.y = 0
 		};
-		collided_with |= Game_move_until_collision(game, &(entity->rect), &remaining_delta_pos);
+		collided_with |= World_move_until_collision(world, &(entity->rect), &remaining_delta_pos);
 		break;
 	}
 	default:
@@ -339,23 +350,9 @@ CollidedWith Game_move(Game* game, Entity* entity, Vector2D* delta_pos)
 	return collided_with;
 }
 
-void Game_destroy(Game* game)
-{
-	/* TODO: call all entities' remove functions */
-	free(game->viewport);
-	free(game->current_level);
-	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
-		Entity* ent = game->entities[i];
-		if (!(ent && ent->remove)) {
-			continue;
-		}
-		ent->remove(ent);
-	}
-	free(game);
-}
 
 
-RectangleInt Game_get_overlapping_cells(Game* game, Rectangle* rect) 
+RectangleInt World_get_overlapping_cells(World* world, Rectangle* rect) 
 {
 	Vector2DInt cell_top_left = {
 		.x = rect->position.x / CM_CELL_WIDTH,
@@ -403,7 +400,7 @@ RectangleInt Game_get_overlapping_cells(Game* game, Rectangle* rect)
 
 /* returns the Rectangle a cell covers.
  */
-Rectangle Game_get_cell_rectangle(Game* game, Vector2DInt* grid_position) 
+Rectangle World_get_cell_rectangle(World* world, Vector2DInt* grid_position) 
 {
 	Rectangle result = {
 		.position = {
@@ -419,14 +416,14 @@ Rectangle Game_get_cell_rectangle(Game* game, Vector2DInt* grid_position)
 }
 
 
-bool Game_rectangle_overlaps_cell_of_type(Game* game, Rectangle* rect, LevelCellType cell_type)
+bool World_rectangle_overlaps_cell_of_type(World* world, Rectangle* rect, LevelCellType cell_type)
 {
-	RectangleInt overlapping_cells = Game_get_overlapping_cells(game, rect);
+	RectangleInt overlapping_cells = World_get_overlapping_cells(world, rect);
 
 	for (int dy = 0; dy < overlapping_cells.size.y; ++dy) {
 		for (int dx = 0; dx < overlapping_cells.size.x; ++dx) {
 			LevelCellTypeProperties* properties = Level_get_cell_type_properties(
-				game->current_level,
+				world->level,
 				overlapping_cells.position.x + dx,
 				overlapping_cells.position.y + dy
 			);
@@ -437,4 +434,16 @@ bool Game_rectangle_overlaps_cell_of_type(Game* game, Rectangle* rect, LevelCell
 		}
 	}
 	return false;
+}
+
+
+
+void World_destroy(World* world) 
+{
+	if (world->level) {
+		Level_destroy(world->level);
+	}
+	if (world->viewport) {
+		Viewport_destroy(world->viewport);
+	}
 }

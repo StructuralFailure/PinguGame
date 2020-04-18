@@ -10,7 +10,9 @@
 --- Instead of using CM_CELL_WIDTH and CM_CELL_HEIGHT, add a field to
     the Game (or Level?) structure that determines the size of a cell.
 
--- Add Entity <-> Entity communication in the form of events.
+-- Maybe not necessary with entity ownership: Add Entity <-> Entity communication in the form of events.
+
+-- Add coins and animated
 
 -- Add support for entities in level loader.
 
