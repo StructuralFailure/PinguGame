@@ -8,6 +8,7 @@
 #include "../Entity.h"
 #include "../SDLHelper.h"
 #include "../Graphics.h"
+#include "../Log.h"
 #include "Player.h"
 
 
@@ -63,7 +64,7 @@ Entity* EntityPlayer_create()
 	player->add = EntityPlayer_add;
 	player->update = EntityPlayer_update;
 	player->draw = EntityPlayer_draw;
-	player->remove = EntityPlayer_remove;
+	player->destroy = EntityPlayer_destroy;
 	player->collide = EntityPlayer_collide;
 	player->get_direction = EntityPlayer_viewport_get_direction;
 
@@ -86,13 +87,13 @@ void EntityPlayer_add(Entity* entity)
 {
 	printf("[EntityPlayer] added\n");
 	/* steal viewport */
-	entity->game->viewport->locked_onto = entity;
+	entity->world->viewport->locked_onto = entity;
 	/* create text entity */
 	EntityPlayerData* data = (EntityPlayerData*)(entity->data);
 	data->entity_text = EntityText_create(text_score);
 	data->entity_text_text = calloc(1, TEXT_SCORE_SIZE);
 	EntityText_set_text(data->entity_text, data->entity_text_text);
-	Game_add_entity(entity->game, data->entity_text);
+	World_add_entity(entity->world, data->entity_text);
 }
 
 
@@ -138,7 +139,7 @@ void EntityPlayer_update(Entity* entity)
 		switch (data->state) {
 		case EPS_DEFAULT:
 			if (keystate[SDL_SCANCODE_UP]) {
-				if (Game_rectangle_overlaps_cell_of_type(entity->game, &(entity->rect), LCT_LADDER)) {
+				if (World_rectangle_overlaps_cell_of_type(entity->world, &(entity->rect), LCT_LADDER)) {
 					/* climb ladder */
 					data->velocity.x = 0;
 					data->velocity.y = 0;
@@ -176,7 +177,7 @@ void EntityPlayer_update(Entity* entity)
 		case EPS_FALLING:
 			break;
 		default:
-			printf("[Game] player state not handled. this is never supposed to happen. brace yourself.\n");
+			Log_error("EntityPlayer", "player state not handled.");
 		}
 
 		if (!moving_horizontally) {
@@ -190,7 +191,7 @@ void EntityPlayer_update(Entity* entity)
 			}
 		}
 
-		CollidedWith cw = Game_move(entity->game, entity, &(data->velocity));
+		CollidedWith cw = World_move(entity->world, entity, &(data->velocity));
 		if ((cw & CW_LEFT) || (cw & CW_RIGHT)) {
 			data->velocity.x = 0;
 		}
@@ -216,7 +217,7 @@ void EntityPlayer_update(Entity* entity)
 		/* player is climbing ladder */
 
 		/* check if player is actually still on ladder. */
-		bool is_on_ladder = Game_rectangle_overlaps_cell_of_type(entity->game, &(entity->rect), LCT_LADDER);
+		bool is_on_ladder = World_rectangle_overlaps_cell_of_type(entity->world, &(entity->rect), LCT_LADDER);
 
 		if (is_on_ladder) {
 			/* let player climb. */
@@ -224,7 +225,7 @@ void EntityPlayer_update(Entity* entity)
 			                   keystate[SDL_SCANCODE_LEFT]  * SPEED_CLIMBING_X;
 			data->velocity.y = keystate[SDL_SCANCODE_DOWN]  * SPEED_CLIMBING_Y -
 			                   keystate[SDL_SCANCODE_UP]    * SPEED_CLIMBING_Y;
-			Game_move(entity->game, entity, &(data->velocity));
+			World_move(entity->world, entity, &(data->velocity));
 		} else {
 			/* no longer on ladder -> fall */
 			data->state = EPS_FALLING;
@@ -252,7 +253,6 @@ void EntityPlayer_draw(Entity* entity, Viewport* viewport)
 
 
 	Viewport_draw_texture(viewport, NULL, &rect, tex);
-	/*SDL_RenderCopy(sdl_renderer, tex, NULL, &sdl_rect);*/
 
 	/* change score text to display current position. */
 	snprintf(
@@ -273,16 +273,22 @@ Direction EntityPlayer_viewport_get_direction(Entity* entity)
 }
 
 
-void EntityPlayer_remove(Entity* entity)
+void EntityPlayer_destroy(Entity* entity)
 {
 	EntityPlayerData* data = (EntityPlayerData*)(entity->data);
-	entity->game->viewport->locked_onto = NULL;
-	Game_remove_entity(entity->game, data->entity_text);
+
+	if (entity->world) {
+		if (entity->world->viewport) {
+			entity->world->viewport->locked_onto = NULL;
+		}
+		World_remove_entity(entity->world, data->entity_text);
+	}
+
 	free(data->entity_text_text);
 	free(data);
 	free(entity);
 
-	printf("[EntityPlayer] removed and destroyed.\n");
+	Log("EntityPlayer", "destroyed.");
 }
 
 
@@ -305,10 +311,11 @@ Entity* EntityPlayer_deserialize(char* input)
 	EntityType type;
 
 	if (sscanf(input, "%d %f %f", &type, &(player->rect.position.x), &(player->rect.position.y)) != 3) {
-		printf("[Player] deserialize: invalid argument count\n");
+		Log_error("EntityPlayer", "deserialize: invalid argument count");
+		EntityPlayer_destroy(player);
 		return NULL;
 	}
 
-	printf("[Player] deserialized");
+	Log("EntityPlayer", "deserialized.");
 	return player;
 }

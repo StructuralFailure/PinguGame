@@ -5,6 +5,7 @@
 #include "Util.h"
 #include "Graphics.h"
 #include "Level.h"
+#include "Log.h"
 #include "SDLHelper.h"
 
 
@@ -20,6 +21,8 @@ void init_cell_type_properties()
 	if (cell_type_properties) {
 		return;
 	}
+
+	Log("Level", "initializing cell type properties.");
 
 	cell_type_properties = calloc(__LCT_COUNT, sizeof(LCTProperties));
 
@@ -77,17 +80,27 @@ Level* Level_load_from_file(FILE* file)
 	if (newline_terminated) {
 		--row_count;
 	}
+	Log("Level", "loading level with width = %d and height = %d.", max_column_count, row_count);
 
-	Level* level = malloc(sizeof(Level));
+	Level* level = calloc(1, sizeof(Level));
 	if (!level) {
+		Log_error("Level", "failed to allocate memory for struct Level.");
 		return NULL;
 	}
 	level->height = row_count;
 	level->width = max_column_count;
 	level->colmap = calloc(sizeof(LevelCellType*), row_count);
+	if (!level->colmap) {
+		Log_error("Level", "unable to allocate memory for colmap.");
+		return NULL;
+	}
 
 	for (int y = 0; y < row_count; ++y) {
 		level->colmap[y] = calloc(sizeof(LevelCellType), max_column_count);
+		if (!level->colmap[y]) {
+			Log_error("Level", "unable to allocate memory for colmap[%d].", y);
+			return NULL;
+		}
 	}
 
 	/* actually read level */
@@ -112,6 +125,8 @@ Level* Level_load_from_file(FILE* file)
 	}
 
 	/* dump level */
+	Log("Level", "content dump:");
+
 	for (int y = 0; y < row_count; ++y) {
 		for (int x = 0; x < max_column_count; ++x) {
 			printf("%d ", level->colmap[y][x]);
@@ -119,13 +134,16 @@ Level* Level_load_from_file(FILE* file)
 		printf("\n");
 	}
 
+	Log("Level", "loaded.");
 	return level;
 }
 
 
-Level* Level_load_from_path(const char* filename) 
+Level* Level_load_from_path(const char* file_path) 
 {
-	FILE* file = fopen(filename, "r");
+	Log("Level", "loading level from path %s.", file_path);
+
+	FILE* file = fopen(file_path, "r");
 	if (!file) {
 		return NULL;
 	}
@@ -137,10 +155,16 @@ Level* Level_load_from_path(const char* filename)
 
 void Level_destroy(Level* level)
 {
+	if (!level) {
+		return;
+	}
+
 	for (int y = 0; y < level->height; ++y) {
 		free(level->colmap[y]);
 	}
 	free(level);
+
+	Log("Level", "destroyed.");
 }
 
 

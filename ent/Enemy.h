@@ -22,7 +22,7 @@ Entity* EntityEnemy_create();
 void EntityEnemy_add(Entity* entity);
 void EntityEnemy_update(Entity* entity);
 void EntityEnemy_draw(Entity* entity, Viewport* viewport);
-void EntityEnemy_remove(Entity* entity);
+void EntityEnemy_destroy(Entity* entity);
 
 /* saving and loading */
 bool EntityEnemy_serialize(Entity* entity, char* output);

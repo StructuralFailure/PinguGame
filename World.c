@@ -2,13 +2,12 @@
 #include <stdlib.h>
 
 #include "World.h"
+#include "Log.h"
 #include "Level.h"
+#include "Graphics.h"
 #include "Entity.h"
 #include "Viewport.h"
 #include "ent/Entities.h"
-
-
-#define MAX_ENTITY_COUNT 32
 
 
 /* what in the ever-loving fuck? */
@@ -27,74 +26,88 @@ Entity* (*entity_deserializers[__ET_COUNT])(char* string) = {
 
 World* World_load_from_path(const char* file_path, bool load_entities) 
 {
-	int error_number = 0;
-
 	FILE* file = fopen(file_path, "r");
 	if (!file) {
-		error_number = 1;
-		goto fail1;
-	}
-	World* world = calloc(1, sizeof(World));
-	if (!world) {
-		error_number = 2;
-		goto fail2;
-	}
-	world->level = Level_load_from_file(file);
-	if (!world->level) {
-		error_number = 3;
-		goto fail3;
-	}
-	world->viewport = Viewport_create();
-	if (!world->viewport) {
-		error_number = 4;
-		goto fail4;
+		Log_error("World", "failed to open file at %s.", file_path);
+		goto fail_file;
 	}
 
+	World* world = calloc(1, sizeof(World));
+	if (!world) {
+		Log_error("World", "failed to allocate memory for struct World.");
+		goto fail_world;
+	}
+
+	Level* level = Level_load_from_file(file);
+	if (!level) {
+		Log_error("World", "failed to load level from file %s.", file_path);
+		goto fail_level;
+	}
+
+	Viewport* viewport = Viewport_create();
+	if (!viewport) {
+		Log_error("World", "failed to create viewport.");
+		goto fail_viewport;
+	}
+	viewport->world = world;
+	viewport->total.size = (Vector2D) {
+		.x = level->width * CM_CELL_WIDTH,
+		.y = level->height * CM_CELL_HEIGHT
+	};
+
+	world->level = level;
+	world->viewport = viewport;
+
+	/* initialize view port with some default values.
+	 * TODO: maybe load viewport parameters from level file.
+	 */
+	
 	if (load_entities) {
 		char line_buffer[256];
 
 		while (fgets(line_buffer, sizeof(line_buffer), file)) {
+			if (line_buffer[0] == '\n') {
+				continue;
+			}
 			int entity_id;
 			sscanf(line_buffer, "%d ", &entity_id);
 
 			if (entity_id < 0 || entity_id >= __ET_COUNT) {
-				printf("[World] loading: invalid entity id %d\n", entity_id);
+				Log_error("World", "loading: invalid entity type %d", entity_id);
 				continue;
 			}
 
 			if (!entity_deserializers[entity_id]) {
-				printf("[World] loading: no deserializer for entity with id %d.\n", entity_id);
+				Log_error("World", "loading: no deserializer for entity with type %d.", entity_id);
 				continue;
 			}
 
 			Entity* entity = (entity_deserializers[entity_id])(line_buffer);
 			if (!entity) {
-				printf("[World] loading: failed to deserialize entity with id %d.\n", entity_id);
+				Log_error("World", "loading: failed to deserialize entity with type %d.", entity_id);
 				continue; 
 			}
 
-			printf("[World] loading: adding entity with id %d.", entity_id);
+			Log("World", "loading: adding entity with type %d.", entity_id);
 			World_add_entity(world, entity);
 		}
 	}
 
 	fclose(file);
+	Log("World", "created.");
 	return world;
 
 	/* error handling */
-fail4:	Level_destroy(world->level);
-fail3:  free(world);
-fail2:  fclose(file);
-fail1:	printf("[World] loading: failed to load from %s. error number: %d\n", file_path, error_number);
-	return NULL;
+fail_viewport:	Level_destroy(level);
+fail_level:	World_destroy(world);
+fail_world:	fclose(file);
+fail_file:	Log_error("World", "failed to create.");
+		return NULL;
 }
 
 
 void World_draw(World* world) 
 {
-	if (!world->viewport) {
-		return;
-	}
 	Viewport_draw(world->viewport);
 }
 
@@ -130,9 +143,14 @@ void World_update(World* world)
 
 bool World_add_entity(World* world, Entity* entity)
 {
+	if (!entity) {
+		return false;
+	}
+	Log("World", "adding entity. type = %d | id = %d", entity->type, entity->id);
+
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
 		if (!world->entities[i]) {
-			entity->game = world->game;
+			entity->world = world;
 			world->entities[i] = entity;
 			if (entity->add) {
 				entity->add(entity);
@@ -148,8 +166,8 @@ bool World_remove_entity(World* world, Entity* entity)
 {
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
 		if (world->entities[i] == entity) {
-			if (entity->remove) {
-				entity->remove(entity);
+			if (entity->destroy) {
+				entity->destroy(entity);
 			}
 			world->entities[i] = NULL;
 			return true;
@@ -160,7 +178,7 @@ bool World_remove_entity(World* world, Entity* entity)
 
 
 /* changes level and viewport */
-void World_set_level(World* world, Level* level) 
+/*void World_set_level(World* world, Level* level) 
 {
 	if (world->level) {
 		Level_destroy(world->level);
@@ -173,7 +191,7 @@ void World_set_level(World* world, Level* level)
 			.y = level->height * CM_CELL_HEIGHT
 		};
 	}
-}
+}*/
 
 
 CollidedWith World_move_until_collision(World* world, Rectangle* rect, const Vector2D* delta_pos) 
@@ -440,10 +458,20 @@ bool World_rectangle_overlaps_cell_of_type(World* world, Rectangle* rect, LevelC
 
 void World_destroy(World* world) 
 {
-	if (world->level) {
-		Level_destroy(world->level);
+	if (!world) {
+		return;
 	}
-	if (world->viewport) {
-		Viewport_destroy(world->viewport);
+
+	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
+		Entity* ent = world->entities[i];
+		if (ent && ent->destroy) {
+			ent->destroy(ent);
+		}
 	}
+	Level_destroy(world->level);
+	Viewport_destroy(world->viewport);
+	free(world);
+
+	Log("World", "destroyed.");
+
 }

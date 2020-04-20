@@ -8,6 +8,7 @@
 #include "SDLHelper.h"
 #include "Graphics.h"
 #include "Level.h"
+#include "Log.h"
 #include "Game.h"
 #include "Entity.h"
 #include "ent/Entities.h"
@@ -17,41 +18,54 @@
 #define LEVEL_PATH "assets/lvl/viewport_test"
 
 
+void test_game_creation(void);
 void test_world_loading(void);
 void game(void);
 
 
 int main(int argc, char** argv) 
 {
-	test_world_loading();
-	return 0;
-
-
-	/* SDL stuff */
+	Log_set_flush_after_printing(true);
 	E_SDL sdl_e;
 	if ((sdl_e = SDLHelper_init()) != E_SDL_SUCCESS) {
-		printf("failed to initialize SDL. error: %d\n", sdl_e);
+		Log_error("PinguGame", "failed to initialize SDL (error %d). aborting.", sdl_e);
 		return 1;
 	}
-	game();
+	test_game_creation();
 	SDLHelper_quit();
-
 	return 0;
+}
+
+
+void test_game_creation(void)
+{
+	Game* game = Game_create();
+	Game_start(game);
+	Game_destroy(game);
 }
 
 
 void test_world_loading(void) 
 {
-	World* world = World_load_from_path("assets/lvl/entity_test.lvl", false);
+	World* world = World_load_from_path("assets/lvl/entity_test.lvl", true);
 	if (!world) {
-		printf("[main] failed to load world.\n");
+		Log_error("PinguGame", "failed to load world.");
 		return;
 	}
 
-	printf(
-		"level [ w = %d | h = %d ] entity type = %d\n", 
-		world->level->width, world->level->height, world->entities[0]->type
-	);
+	for (int i = 0; i < 32; ++i) {
+		Entity* entity = world->entities[i];
+		if (!entity) {
+			continue;
+		}
+		printf(
+			"level  [ w = %d | h = %d ]\n"
+			"entity [ type = %d | x = %f | y = %f ]\n",
+			world->level->width, world->level->height,
+			entity->type, entity->rect.position.x, entity->rect.position.y
+		);
+	} 
+	
 	World_destroy(world);
 }
 

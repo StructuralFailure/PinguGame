@@ -12,7 +12,7 @@ typedef struct EntityTextData {
 
 Entity* EntityText_create(char* text);
 void EntityText_draw(Entity* entity, Viewport* viewport);
-void EntityText_remove(Entity* entity);
+void EntityText_destroy(Entity* entity);
 
 void EntityText_set_text(Entity* entity, char* text);
 

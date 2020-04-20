@@ -2,11 +2,13 @@
 
 #include <SDL2/SDL.h>
 #include "../Game.h"
+#include "../Log.h"
 #include "../Util.h"
 #include "../Graphics.h"
 #include "../Entity.h"
 #include "../SDLHelper.h"
 #include "../Viewport.h"
+#include "../World.h"
 #include "Enemy.h"
 
 
@@ -56,7 +58,7 @@ Entity* EntityEnemy_create()
 	enemy->add = EntityEnemy_add;
 	enemy->update = EntityEnemy_update;
 	enemy->draw = EntityEnemy_draw;
-	enemy->remove = EntityEnemy_remove;
+	enemy->destroy = EntityEnemy_destroy;
 	enemy->collide = NULL;
 
 	return enemy;
@@ -75,7 +77,7 @@ void EntityEnemy_update(Entity* entity)
 	Vector2D* v = &(data->velocity);
 	v->y = min(v->y + GRAVITY, MAX_FALL_SPEED);
 
-	CollidedWith cw = Game_move(entity->game, entity, v);
+	CollidedWith cw = World_move(entity->world, entity, v);
 	if (cw & CW_TOP) {
 		v->y = 0;
 	}
@@ -98,9 +100,9 @@ void EntityEnemy_draw(Entity* entity, Viewport* viewport)
 }
 
 
-void EntityEnemy_remove(Entity* entity)
+void EntityEnemy_destroy(Entity* entity)
 {
-	printf("[EntityEnemy] removed and destroyed.\n");
+	Log("EntityEnemy", "destroyed.");
 
 	free(entity->data);
 	free(entity);
@@ -126,10 +128,10 @@ Entity* EntityEnemy_deserialize(char* input)
 	EntityType type;
 
 	if (sscanf(input, "%d %f %f", &type, &(enemy->rect.position.x), &(enemy->rect.position.y)) != 3) {
-		printf("[Enemy] deserialize: invalid argument count\n");
+		Log_error("EntityEnemy", "deserialize: invalid argument count");
 		return NULL;
 	}
 
-	printf("[Enemy] deserialized");
+	Log("EntityEnemy", "deserialized.");
 	return enemy;
 }

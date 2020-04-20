@@ -39,7 +39,7 @@ Entity* EntityText_create(char* text)
 	entity->type = ET_TEXT;
 
 	entity->draw = EntityText_draw;
-	entity->remove = EntityText_remove;
+	entity->destroy = EntityText_destroy;
 
 	EntityText_set_text(entity, text);
 
@@ -62,7 +62,7 @@ void EntityText_draw(Entity* entity, Viewport* viewport)
 		},
 		.size = {
 			.x = CHARACTER_WIDTH,
-			.y = CHARACTER_HEIGHT /* TODO: add definition of height */
+			.y = CHARACTER_HEIGHT
 		}
 	};
 
@@ -89,8 +89,8 @@ void EntityText_draw(Entity* entity, Viewport* viewport)
 		in_tileset_rect.position.x = tileset_x;
 		on_screen_rect.position.x = entity->rect.position.x + (CHARACTER_WIDTH * i);
 
-		on_screen_rect.position.x += entity->game->viewport->visible.position.x;
-		on_screen_rect.position.y += entity->game->viewport->visible.position.y;
+		on_screen_rect.position.x += entity->world->viewport->visible.position.x;
+		on_screen_rect.position.y += entity->world->viewport->visible.position.y;
 		Viewport_draw_texture(viewport, &in_tileset_rect, &on_screen_rect, tex_tileset);
 
 		/*SDL_Rect sdl_source_rect = SDLHelper_get_sdl_rect(&in_tileset_rect);
@@ -100,7 +100,7 @@ void EntityText_draw(Entity* entity, Viewport* viewport)
 }
 
 
-void EntityText_remove(Entity* entity)
+void EntityText_destroy(Entity* entity)
 {
 	printf("[EntityText] removed and destroyed.\n");
 

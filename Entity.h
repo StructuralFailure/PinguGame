@@ -4,6 +4,7 @@
 #include "Forward.h"
 #include "Game.h"
 #include "Graphics.h"
+#include "World.h"
 #include "SDLHelper.h"
 
 
@@ -16,8 +17,10 @@ typedef enum EntityType {
 
 
 struct Entity {
+	unsigned long id;
+
 	EntityType type;
-	Game* game;
+	World* world;
 	void* data;
 	Rectangle rect; /* describes the collision rectangle */
 	Rectangle rect_prev; 
@@ -28,8 +31,8 @@ struct Entity {
 	void (*add)(struct Entity* entity);
 	void (*update)(struct Entity* entity);
 	void (*draw)(struct Entity* entity, Viewport* viewport);
-	void (*remove)(struct Entity* entity);
-	void (*collide)(struct Entity* entity, struct Entity* entity_collide);
+	void (*destroy)(struct Entity* entity);
+	void (*collide)(struct Entity* entity, struct Entity* entity_other);
 };
 
 
