@@ -41,6 +41,8 @@ void EntityLineDrawer_update(Entity* entity)
 {
 	EntityLineDrawerData* data = (EntityLineDrawerData*)(entity->data);
 
+	/* TODO: replace with built-in IO functions
+	 */
 	int mouse_x;
 	int mouse_y;
 	Uint32 buttons = SDL_GetMouseState(&mouse_x, &mouse_y);
@@ -52,7 +54,6 @@ void EntityLineDrawer_update(Entity* entity)
 		ls_current = &(data->ls_b);
 	}
 
-
 	if (buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) {
 		if (!data->mouse_held_down) {
 			data->mouse_held_down = true;
@@ -62,10 +63,10 @@ void EntityLineDrawer_update(Entity* entity)
 			} else {
 				data->ls_b_is_finished = false;
 			}
-
+			
 			ls_current->point_a = (Vector2D) {
-				.x = mouse_x / 2,
-				.y = mouse_y / 2
+				.x = mouse_x / RENDER_SCALE_FACTOR,
+				.y = mouse_y / RENDER_SCALE_FACTOR
 			};
 		}
 	} else if (data->mouse_held_down) {
@@ -78,8 +79,8 @@ void EntityLineDrawer_update(Entity* entity)
 		}
 
 		ls_current->point_b = (Vector2D) {
-			.x = mouse_x / 2,
-			.y = mouse_y / 2
+			.x = mouse_x / RENDER_SCALE_FACTOR,
+			.y = mouse_y / RENDER_SCALE_FACTOR
 		};
 
 		data->ls_a_is_current = !(data->ls_a_is_current);

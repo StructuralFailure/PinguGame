@@ -27,6 +27,8 @@ Entity* (*entity_deserializers[__ET_COUNT])(char* string) = {
 
 World* World_load_from_path(const char* file_path, bool load_entities) 
 {
+	Log("World", "loading world from path %s.", file_path);
+
 	FILE* file = fopen(file_path, "r");
 	if (!file) {
 		Log_error("World", "failed to open file at %s.", file_path);
@@ -95,14 +97,13 @@ World* World_load_from_path(const char* file_path, bool load_entities)
 	}
 
 	fclose(file);
-	Log("World", "created.");
 	return world;
 
 	/* error handling */
 fail_viewport:	Level_destroy(level);
 fail_level:	World_destroy(world);
 fail_world:	fclose(file);
-fail_file:	Log_error("World", "failed to create.");
+fail_file:	Log_error("World", "failed to load.");
 		return NULL;
 }
 
@@ -144,10 +145,15 @@ void World_update(World* world)
 
 bool World_add_entity(World* world, Entity* entity)
 {
-	if (!entity) {
+	if (!world) {
+		Log_error("World", "add_entity: world == NULL");
 		return false;
 	}
-	Log("World", "adding entity. type = %d | id = %d", entity->type, entity->id);
+	if (!entity) {
+		Log_error("World", "add_entity: entity == NULL");
+		return false;
+	}
+	Log("World", "adding entity. [ type = %d | id = %d ]", entity->type, entity->id);
 
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
 		if (!world->entities[i]) {
@@ -165,6 +171,16 @@ bool World_add_entity(World* world, Entity* entity)
 
 bool World_remove_entity(World* world, Entity* entity)
 {
+	if (!world) {
+		Log_error("World", "remove_entity: world == NULL");
+		return false;
+	}
+	if (!entity) {
+		Log_error("World", "remove_entity: entity == NULL");
+		return false;
+	}
+	Log("World", "removing entity. [ type = %d | id = %d ]", entity->type, entity->id);
+
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
 		if (world->entities[i] == entity) {
 			if (entity->destroy) {
@@ -197,7 +213,26 @@ bool World_remove_entity(World* world, Entity* entity)
 
 CollidedWith World_move_until_collision(World* world, Rectangle* rect, const Vector2D* delta_pos) 
 {
+	if (!world) {
+		Log_error("World", "move_until_collision: world == NULL");
+		return CW_NOTHING;
+	}
+	if (!rect) {
+		Log_error("World", "move_until_collision: rect == NULL");
+		return CW_NOTHING;
+	}
+	if (!delta_pos) {
+		Log_error("World", "move_until_collision: delta_pos == NULL");
+		return CW_NOTHING;
+	}
+
+
 	float delta_length = sqrt(delta_pos->x * delta_pos->x + delta_pos->y * delta_pos->y);
+	if (delta_length == 0) {
+		return CW_NOTHING;
+	}
+
+	/* normal vector of delta position (length = 1, kinda arbitrary but works) */
 	Vector2D delta_pos_norm = {
 		.x = delta_pos->x / delta_length,
 		.y = delta_pos->y / delta_length
@@ -228,27 +263,75 @@ CollidedWith World_move_until_collision(World* world, Rectangle* rect, const Vec
 
 		is_colliding = false;
 		for (int dy = 0; dy < cells.size.y; ++dy) {
-			for (int dx = 0; dx < cells.size.x; ++dx) {
-				Vector2DInt current_cell = {
-					.x = cells.position.x + dx,
-					.y = cells.position.y + dy
+		for (int dx = 0; dx < cells.size.x; ++dx) {
+			Vector2DInt current_cell = {
+				.x = cells.position.x + dx,
+				.y = cells.position.y + dy
+			};
+
+			LevelCellTypeFlags lct_flags = Level_get_cell_type_flags(world->level, current_cell.x, current_cell.y);
+			Rectangle current_cell_rect = World_get_cell_rectangle(world, &current_cell);
+
+			if (lct_flags & LCTF_SOLID) {
+				rect_last_collision = current_cell_rect;
+				is_colliding = true;
+			} else if ((lct_flags & LCTF_SEMISOLID) && (pos_original.y + rect->size.y <= current_cell_rect.position.y)) {
+				/* check whether cell is semi-solid and whether the bottom edge of the rectangle
+				 * is above or on the horizontal line representing the platform. this is to make sure
+				 * we can only collide with it when approaching from the top.
+				 */
+
+				LineSegment ls_top_of_cell = {
+					.point_a = {
+						.x = current_cell_rect.position.x, 
+						.y = current_cell_rect.position.y
+					},
+					.point_b = {
+						.x = current_cell_rect.position.x + current_cell_rect.size.x,
+						.y = current_cell_rect.position.y
+					}
 				};
 
-				LevelCellTypeFlags lct_flags = Level_get_cell_type_flags(world->level, current_cell.x, current_cell.y);
-				Rectangle current_cell_rect = World_get_cell_rectangle(world, &current_cell);
 
-				if (lct_flags & LCTF_SOLID) {
-					is_colliding = true;
-					has_collided = true;
+				/* TODO:
+				 * add support for rectangles bigger than cells
+				 * right now, only the bottom-left and the bottom-right corners of the rectangle's
+				 * movement are evaluated. if a cell is smaller than the size of the difference between
+				 * them, it could pass through the middle undetected.
+				 * could use loops here. 
+				 */
+				LineSegment ls_rect_movement_top_left = {
+					.point_a = pos_original,
+					.point_b = rect->position
+				};
+
+				LineSegment ls_rect_movement_bottom_left = LineSegment_add_vector(
+					ls_rect_movement_top_left,
+					(Vector2D) { .x = 0, .y = rect->size.y }
+				);
+
+				LineSegment ls_rect_movement_bottom_right = LineSegment_add_vector(
+					ls_rect_movement_top_left,
+					(Vector2D) { .x = rect->size.x, .y = rect->size.y }
+				);
+
+				/* no need for a variable here right now, but it will be become necessary
+				 * once we check more than two corners.
+				 */
+				bool ls_intersect =
+					LineSegment_intersect(&ls_top_of_cell, &ls_rect_movement_bottom_left) ||
+					LineSegment_intersect(&ls_top_of_cell, &ls_rect_movement_bottom_right);
+
+				if (ls_intersect) {
 					rect_last_collision = current_cell_rect;
-				} else if (lct_flags & LCTF_SEMISOLID) {
-					/* cell can be jumped onto from below.
-					 * in other words, it is only solid from above.
-					 */
-
+					is_colliding = true;
 				}
-
 			}
+
+			if (is_colliding) {
+				has_collided = true;
+			}
+		}
 		}
 
 		if (is_colliding) {
@@ -313,7 +396,7 @@ CollidedWith World_move_until_collision(World* world, Rectangle* rect, const Vec
 			rect->position.x = rect_last_collision.position.x + rect_last_collision.size.x;
 			return CW_RIGHT;
 		} else {
-			fprintf(stderr, "Fabi should learn how to write collision engines properly.\n");
+			fprintf(stderr, "stuck.");
 		}
 	}
 	return CW_NOTHING;
@@ -374,7 +457,6 @@ CollidedWith World_move(World* world, Entity* entity, Vector2D* delta_pos)
 	entity->rect_prev = rect_start;
 	return collided_with;
 }
-
 
 
 RectangleInt World_get_overlapping_cells(World* world, Rectangle* rect) 
@@ -441,6 +523,8 @@ Rectangle World_get_cell_rectangle(World* world, Vector2DInt* grid_position)
 }
 
 
+/* returns whether the passed rectangle overlaps at least one cell of the passed type.
+ */
 bool World_rectangle_overlaps_cell_of_type(World* world, Rectangle* rect, LevelCellType cell_type)
 {
 	RectangleInt overlapping_cells = World_get_overlapping_cells(world, rect);

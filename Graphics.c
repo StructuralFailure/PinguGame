@@ -5,7 +5,7 @@
 bool Rectangle_overlap(Rectangle* rect_a, Rectangle* rect_b) 
 {
 	if (!rect_a || !rect_b) {
-		Log_error("Graphics", "Rectangle: at least one argument is NULL.");
+		Log_error("Graphics", "Rectangle_overlap: at least one argument is NULL.");
 		return false;
 	}
 
@@ -18,16 +18,10 @@ bool Rectangle_overlap(Rectangle* rect_a, Rectangle* rect_b)
 }
 
 
-/*LineSegment LineSegment_construct_polar(Vector2D pos_start, float dir, float length)
-{
-	return (LineSegment) { 0 };
-}*/
-
-
 bool LineSegment_intersect(LineSegment* ls_a, LineSegment* ls_b)
 {
 	if (!ls_a || !ls_b) {
-		Log_error("Graphics", "LineSegment: at least one argument is NULL.");
+		Log_error("Graphics", "LineSegment_intersect: at least one argument is NULL.");
 		return false;
 	}
 
@@ -58,7 +52,20 @@ bool LineSegment_intersect(LineSegment* ls_a, LineSegment* ls_b)
 }
 
 
-Vector2D Vector2D_difference(Vector2D vec_min, Vector2D vec_sub) {
+/* adds a vector a to a line segment.
+ * i.e. moves a line segment without changing its length or direction.
+ */
+LineSegment LineSegment_add_vector(LineSegment ls, Vector2D vec)
+{
+	return (LineSegment) {
+		.point_a = Vector2D_sum(ls.point_a, vec),
+		.point_b = Vector2D_sum(ls.point_b, vec)
+	};
+}
+
+
+Vector2D Vector2D_difference(Vector2D vec_min, Vector2D vec_sub) 
+{
 	return (Vector2D) {
 		.x = vec_min.x - vec_sub.x,
 		.y = vec_min.y - vec_sub.y
@@ -66,7 +73,8 @@ Vector2D Vector2D_difference(Vector2D vec_min, Vector2D vec_sub) {
 }
 
 
-Vector2D Vector2D_sum(Vector2D vec_sum_a, Vector2D vec_sum_b) {
+Vector2D Vector2D_sum(Vector2D vec_sum_a, Vector2D vec_sum_b) 
+{
 	return (Vector2D) {
 		.x = vec_sum_a.x + vec_sum_b.x,
 		.y = vec_sum_a.y + vec_sum_b.y
