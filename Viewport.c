@@ -69,6 +69,30 @@ void Viewport_draw_texture(Viewport* viewport, Rectangle* rect_source, Rectangle
 }
 
 
+void Viewport_draw_line_segment(Viewport* viewport, LineSegment* line_segment)
+{
+	Vector2D point_a = 
+		Vector2D_difference(
+			Vector2D_sum(
+				line_segment->point_a, 
+				viewport->total.position
+			),
+			viewport->visible.position
+		);
+
+	Vector2D point_b =
+		Vector2D_difference(
+			Vector2D_sum(
+				line_segment->point_b, 
+				viewport->total.position
+			),
+			viewport->visible.position
+		);
+
+	SDL_RenderDrawLine(sdl_renderer, point_a.x, point_a.y, point_b.x, point_b.y);
+}
+
+
 void Viewport_draw(Viewport* viewport) 
 {
 	World* world = viewport->world;

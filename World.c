@@ -12,15 +12,16 @@
 
 /* what in the ever-loving fuck? */
 bool (*entity_serializers[__ET_COUNT])(Entity* entity, char* output) = {
-	[ET_PLAYER] = EntityPlayer_serialize,
-	[ET_ENEMY]  = EntityEnemy_serialize,
-	[ET_TEXT]  =  EntityText_serialize
+	[ET_PLAYER]      = EntityPlayer_serialize,
+	[ET_ENEMY]       = EntityEnemy_serialize,
+	[ET_TEXT]        = EntityText_serialize,
 };
 
 Entity* (*entity_deserializers[__ET_COUNT])(char* string) = {
-	[ET_PLAYER] = EntityPlayer_deserialize,
-	[ET_ENEMY]  = EntityEnemy_deserialize,
-	[ET_TEXT]   = EntityText_deserialize
+	[ET_PLAYER]      = EntityPlayer_deserialize,
+	[ET_ENEMY]       = EntityEnemy_deserialize,
+	[ET_TEXT]        = EntityText_deserialize,
+	[ET_LINE_DRAWER] = EntityLineDrawer_deserialize
 };
 
 
@@ -233,14 +234,20 @@ CollidedWith World_move_until_collision(World* world, Rectangle* rect, const Vec
 					.y = cells.position.y + dy
 				};
 
-				if (!Level_is_solid(world->level, current_cell.x, current_cell.y)) {
-					/* cell not solid -> no collision */
-					continue;
+				LevelCellTypeFlags lct_flags = Level_get_cell_type_flags(world->level, current_cell.x, current_cell.y);
+				Rectangle current_cell_rect = World_get_cell_rectangle(world, &current_cell);
+
+				if (lct_flags & LCTF_SOLID) {
+					is_colliding = true;
+					has_collided = true;
+					rect_last_collision = current_cell_rect;
+				} else if (lct_flags & LCTF_SEMISOLID) {
+					/* cell can be jumped onto from below.
+					 * in other words, it is only solid from above.
+					 */
+
 				}
 
-				is_colliding = true;
-				has_collided = true;
-				rect_last_collision = World_get_cell_rectangle(world, &current_cell);
 			}
 		}
 

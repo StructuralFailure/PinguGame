@@ -30,6 +30,7 @@ typedef struct Viewport {
 Viewport* Viewport_create();
 void Viewport_destroy(Viewport* viewport);
 void Viewport_draw_texture(Viewport* viewport, Rectangle* rect_source, Rectangle* rect_dest, SDL_Texture* texture);
+void Viewport_draw_line_segment(Viewport* viewport, LineSegment* line_segment);
 void Viewport_draw(Viewport* viewport);
 void Viewport_update(Viewport* viewport);
 

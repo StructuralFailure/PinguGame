@@ -9,9 +9,10 @@
 
 
 typedef enum EntityType {
-	ET_PLAYER = 0,
-	ET_ENEMY  = 1,
-	ET_TEXT   = 2,
+	ET_PLAYER      = 0,
+	ET_ENEMY       = 1,
+	ET_TEXT        = 2,
+	ET_LINE_DRAWER = 3,
 	__ET_COUNT
 } EntityType;
 

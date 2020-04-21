@@ -19,8 +19,12 @@
 
 
 void test_game_creation(void);
+
 void test_world_loading(void);
-void game(void);
+
+void test_line_segment_intersect(void);
+
+void scanf_line_segment(LineSegment* ls);
 
 
 int main(int argc, char** argv) 
@@ -34,6 +38,37 @@ int main(int argc, char** argv)
 	test_game_creation();
 	SDLHelper_quit();
 	return 0;
+}
+
+void test_line_segment_intersect(void)
+{
+	LineSegment ls_1;
+	LineSegment ls_2;
+
+
+	printf("line segment 1:\n");
+	scanf_line_segment(&ls_1);
+	printf("\nline_segment 2:\n");
+	scanf_line_segment(&ls_2);
+
+	bool intersect = LineSegment_intersect(&ls_1, &ls_2);
+	if (intersect) {
+		printf("intersect!\n");
+	} else {
+		printf("do not intersect.\n");
+	}
+}
+
+void scanf_line_segment(LineSegment* ls) {
+	printf("point_a.x := ");
+	scanf("%f", &(ls->point_a.x));
+	printf("point_a.y := ");
+	scanf("%f", &(ls->point_a.y));
+	printf("\n");
+	printf("point_b.x := ");
+	scanf("%f", &(ls->point_b.x));
+	printf("point_b.y := ");
+	scanf("%f", &(ls->point_b.y));
 }
 
 

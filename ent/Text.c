@@ -6,6 +6,7 @@
 #include "../Entity.h"
 #include "../Graphics.h"
 #include "../Game.h"
+#include "../Log.h"
 #include "../Viewport.h"
 #include "Text.h"
 
@@ -43,7 +44,7 @@ Entity* EntityText_create(char* text)
 
 	EntityText_set_text(entity, text);
 
-	printf("[EntityText] created with text \"%s\"\n", text);
+	Log("EntityText", "created with text \"%s\"\n", text);
 
 	return entity;
 }
@@ -102,7 +103,7 @@ void EntityText_draw(Entity* entity, Viewport* viewport)
 
 void EntityText_destroy(Entity* entity)
 {
-	printf("[EntityText] removed and destroyed.\n");
+	printf("[EntityText] destroyed.\n");
 
 	EntityText_set_text(entity, NULL);
 	free(entity->data);

@@ -16,6 +16,15 @@ typedef enum Direction {
 } Direction;
 
 
+typedef enum LineSegmentRelation {
+	VI_NONE,
+	VI_COLLINEAR_OVERLAPPING,
+	VI_COLLINEAR_DISJOINT,
+	VI_PARALLEL,
+	VI_INTERSECT,
+	VI_NO_INTERSECT
+} LineSegmentRelation;
+
 typedef struct Vector2D {
 	float x;
 	float y;
@@ -26,6 +35,13 @@ typedef struct Vector2DInt {
 	int x;
 	int y;
 } Vector2DInt;
+
+
+typedef struct LineSegment {
+	Vector2D point_a;
+	Vector2D point_b;
+} LineSegment;
+
 
 typedef struct Rectangle {
 	Vector2D position;
@@ -40,6 +56,10 @@ typedef struct Rectangle2DInt {
 
 
 bool Rectangle_overlap(Rectangle* rect_a, Rectangle* rect_b);
+bool LineSegment_intersect(LineSegment* line_a, LineSegment* line_b);
+Vector2D Vector2D_difference(Vector2D vec_min, Vector2D vec_sub);
+Vector2D Vector2D_sum(Vector2D vec_sum_a, Vector2D vec_sum_b);
+float Vector2D_cross_product(Vector2D vec_a, Vector2D vec_b);
 
 
 #endif
