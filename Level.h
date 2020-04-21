@@ -12,14 +12,16 @@ typedef enum LevelCellType {
 	LCT_SOLID_BLOCK = 1,
 	LCT_LADDER = 2,
 	LCT_ITEM_BLOCK = 3,
+	LCT_SEMISOLID_BLOCK = 4,
 	__LCT_COUNT
 } LevelCellType;
 
 
 typedef enum LevelCellTypeFlags {
-	LCTF_INVALID = -1,
+	LCTF_NONE = 0,
 	LCTF_SOLID = 1,
-	LCTF_INVISIBLE = 2
+	LCTF_SEMISOLID = 2, /* can only be passed through from the bottom */
+	LCTF_INVISIBLE = 3
 } LevelCellTypeFlags;
 
 

@@ -305,6 +305,7 @@ Entity* EntityPlayer_deserialize(char* input)
 	 */
 	Entity* player = EntityPlayer_create();
 	if (!player) {
+		Log_error("EntityPlayer", "failed to create Entity base class.");
 		return NULL;
 	}
 

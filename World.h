@@ -11,6 +11,7 @@
 #define MAX_ENTITY_COUNT 32
 #define CM_CELL_WIDTH  16
 #define CM_CELL_HEIGHT 16
+#define SERIALIZATION_BUFFER_SIZE 256
 
 
 typedef enum CollidedWith {

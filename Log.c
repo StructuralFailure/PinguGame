@@ -7,7 +7,9 @@
 #define TC_RED     "\x1B[31m"
 #define TC_DEFAULT "\x1B[0m"
 
+
 bool flush_after_printing = false;
+bool do_log = true;
 
 
 void Log_set_flush_after_printing(bool value) 
@@ -16,8 +18,18 @@ void Log_set_flush_after_printing(bool value)
 }
 
 
+void Log_set_do_log(bool value) 
+{
+	do_log = value;
+}
+
+
 void Log(const char* category, const char* format, ...)
 {
+	if (!do_log) {
+		return;
+	}
+
 	va_list args;
 
 	printf("[%s] ", category);
@@ -35,9 +47,13 @@ void Log(const char* category, const char* format, ...)
 
 void Log_error(const char* category, const char* format, ...)
 {
+	if (!do_log) {
+		return;
+	}
+
 	va_list args;
 
-	printf("%s%s", TC_RED, category);
+	printf("%s[%s]", TC_RED, category);
 
 	va_start(args, format);
 	vprintf(format, args);

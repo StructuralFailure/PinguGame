@@ -90,6 +90,10 @@ void Viewport_draw(Viewport* viewport)
 		}
 	};
 
+	/* TODO:
+	 * do not attempt to draw tiles outside the visible part
+	 * of the map. same goes for entities.
+         */
 	for (int y = 0; y < world->level->height; ++y) {
 		for (int x = 0; x < world->level->width; ++x) {
 			LevelCellTypeProperties* ct_properties = Level_get_cell_type_properties(world->level, x, y);
@@ -147,6 +151,9 @@ void Viewport_update(Viewport* viewport)
 		.y = round(rect_entity->position.y + (rect_entity->size.y / 2))
 	};
 
+	/* TODO:
+	 * there's gotta be a less verbose way to achieve this.
+	 */
 	if (entity_direction & DIR_RIGHT) {
 		float cam_endpoint_x = pos_entity_center.x + viewport->camera_distance.x;
 		if (cam_endpoint_x > viewport->visible.position.x + viewport->visible.size.x) {

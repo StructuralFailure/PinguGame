@@ -2,6 +2,7 @@
 
 #include "Entity.h"
 #include "World.h"
+#include "Log.h"
 
 
 Entity* Entity_create() {
@@ -9,6 +10,7 @@ Entity* Entity_create() {
 
 	Entity* entity = calloc(1, sizeof(Entity));
 	if (!entity) {
+		Log_error("Entity", "failed to allocate memory for Entity base object.");
 		return NULL;
 	}
 	entity->id = id_counter++;
