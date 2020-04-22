@@ -7,6 +7,9 @@
 #include "../Graphics.h"
 
 
+#define TEXT_SCORE_SIZE 32
+
+
 typedef enum EntityPlayerState {
 	EPS_DEFAULT,
 	EPS_JUMPING_CHARGING, /* longer presses of up lead to higher jumps */
@@ -31,7 +34,7 @@ typedef struct EntityPlayerData {
 	int jump_charge_counter;
 
 	Entity* entity_text;
-	char* entity_text_text;
+	char entity_text_text[TEXT_SCORE_SIZE];
 
 	bool key_up_pressed_prev;
 } EntityPlayerData;

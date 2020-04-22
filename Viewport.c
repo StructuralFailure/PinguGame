@@ -199,7 +199,9 @@ void Viewport_update(Viewport* viewport)
 			float viewport_x_diff = viewport->visible.position.x - viewport_x_new;
 			viewport->visible.position.x -= min(viewport->camera_speed.x, viewport_x_diff);
 		}
-	} else if (entity_direction & DIR_UP) {
+	}
+
+	if (entity_direction & DIR_UP) {
 		float cam_endpoint_y = pos_entity_center.y + viewport->camera_distance.y;
 		if (cam_endpoint_y > viewport->visible.position.y + viewport->visible.size.y) {
 			float viewport_y_new = min(
@@ -209,7 +211,7 @@ void Viewport_update(Viewport* viewport)
 			float viewport_y_diff = viewport_y_new - viewport->visible.position.y;
 			viewport->visible.position.y += min(viewport->camera_speed.y, viewport_y_diff);
 		}
-	} else if (entity_direction & DIR_DOWN) {
+	} if (entity_direction & DIR_DOWN) {
 		float cam_endpoint_y = pos_entity_center.y - viewport->camera_distance.y;
 		if (cam_endpoint_y < viewport->visible.position.y) {
 			float viewport_y_new = max(

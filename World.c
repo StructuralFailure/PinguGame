@@ -58,6 +58,13 @@ World* World_load_from_path(const char* file_path, bool load_entities)
 		.y = level->height * CM_CELL_HEIGHT
 	};
 
+
+	Log(
+		"World", "viewport.total.rect = [\n  position = [ x = %f | y = %f ] |\n  size = [ x = %f | y = % f ]\n]",
+		viewport->total.position.x, viewport->total.position.y,
+		viewport->total.size.x, viewport->total.size.y
+	);
+	
 	world->level = level;
 	world->viewport = viewport;
 

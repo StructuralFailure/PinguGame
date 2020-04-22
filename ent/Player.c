@@ -12,7 +12,6 @@
 #include "Player.h"
 
 
-#define TEXT_SCORE_SIZE 32
 #define MAX_JUMP_CHARGE 7
 #define JUMP_SPEED      -3.5
 
@@ -26,6 +25,9 @@
 char text_score[32];
 SDL_Texture* tex_player_left;
 SDL_Texture* tex_player_right;
+
+
+void handle_item_block_collision(Entity*);
 
 
 Entity* EntityPlayer_create()
@@ -85,14 +87,16 @@ Entity* EntityPlayer_create()
 
 void EntityPlayer_add(Entity* entity)
 {
-	printf("[EntityPlayer] added\n");
+	printf("[EntityPlayer] adding.\n");
 	/* steal viewport */
 	entity->world->viewport->locked_onto = entity;
 	/* create text entity */
 	EntityPlayerData* data = (EntityPlayerData*)(entity->data);
-	data->entity_text = EntityText_create(text_score);
-	data->entity_text_text = calloc(1, TEXT_SCORE_SIZE);
-	EntityText_set_text(data->entity_text, data->entity_text_text);
+	data->entity_text = EntityText_create(data->entity_text_text);
+	data->entity_text->rect.position = (Vector2D) {
+		.x = 8,
+		.y = 8
+	};
 	World_add_entity(entity->world, data->entity_text);
 }
 
@@ -213,6 +217,11 @@ void EntityPlayer_update(Entity* entity)
 		} else {
 			data->state = EPS_FALLING;
 		}
+
+
+		if (cw & CW_BOTTOM) {
+			handle_item_block_collision(entity);
+		}
 	} else /* data->state == EPS_CLIMBING */ { 
 		/* player is climbing ladder */
 
@@ -265,11 +274,15 @@ void EntityPlayer_draw(Entity* entity, Viewport* viewport)
 Direction EntityPlayer_viewport_get_direction(Entity* entity) 
 {
 	EntityPlayerData* data = (EntityPlayerData*)(entity->data);
+
+	Direction direction = DIR_UP | DIR_DOWN;
 	if (data->facing == EPF_RIGHT) {
-		return DIR_RIGHT;
+		return direction |= DIR_RIGHT;
 	} else {
-		return DIR_LEFT;
+		return direction |= DIR_LEFT;
 	}
+
+	return direction;
 }
 
 
@@ -284,7 +297,6 @@ void EntityPlayer_destroy(Entity* entity)
 		World_remove_entity(entity->world, data->entity_text);
 	}
 
-	free(data->entity_text_text);
 	free(data);
 	free(entity);
 
@@ -319,4 +331,28 @@ Entity* EntityPlayer_deserialize(char* input)
 
 	Log("EntityPlayer", "deserialized.");
 	return player;
+}
+
+
+void handle_item_block_collision(Entity* entity)
+{
+	World* world = entity->world;
+	Level* level = world->level;
+
+	RectangleInt cells_above = World_get_overlapping_cells(world, &(entity->rect));
+	cells_above.position.y -= 1;
+	for (int dx = 0; dx < cells_above.size.x; ++dx) {
+		Vector2D current_cell = {
+			.x = cells_above.position.x + dx,
+			.y = cells_above.position.y
+		};
+
+		LevelCellTypeProperties* cell_properties = Level_get_cell_type_properties(level, current_cell.x, current_cell.y);
+		if (!cell_properties || cell_properties->type != LCT_ITEM_BLOCK) {
+			continue;
+		}
+		/* handle item block */
+		Log("EntityPlayer", "item block was hit from below.");
+		Level_set_cell_type(level, current_cell.x, current_cell.y, LCT_EMPTY_ITEM_BLOCK);
+	}
 }

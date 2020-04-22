@@ -67,36 +67,34 @@ void EntityText_draw(Entity* entity, Viewport* viewport)
 		}
 	};
 
+
+
 	Rectangle on_screen_rect = {
-		.position = {
-			.y = entity->rect.position.y
-		},
+		.position = Vector2D_sum(viewport->visible.position, entity->rect.position),
 		.size = {
 			.x = CHARACTER_WIDTH,
 			.y = CHARACTER_HEIGHT
 		}
 	};
 
+
 	for (int i = 0; text[i] != '\0'; ++i) {
 		char c = text[i];
 		int tileset_x = 0;
+		bool whitespace = false;
 
 		if (c == ' ') {
-			continue;
+			whitespace = true;
 		} else if (c >= '0' && c <= '9') {
 			tileset_x = TILESET_NUMBERS_OFFSET + (CHARACTER_WIDTH * (c - '0'));	
 		}
 
-		in_tileset_rect.position.x = tileset_x;
-		on_screen_rect.position.x = entity->rect.position.x + (CHARACTER_WIDTH * i);
+		if (!whitespace) {
+			in_tileset_rect.position.x = tileset_x;
+			Viewport_draw_texture(viewport, &in_tileset_rect, &on_screen_rect, tex_tileset);
+		}
 
-		on_screen_rect.position.x += entity->world->viewport->visible.position.x;
-		on_screen_rect.position.y += entity->world->viewport->visible.position.y;
-		Viewport_draw_texture(viewport, &in_tileset_rect, &on_screen_rect, tex_tileset);
-
-		/*SDL_Rect sdl_source_rect = SDLHelper_get_sdl_rect(&in_tileset_rect);
-		SDL_Rect sdl_dest_rect = SDLHelper_get_sdl_rect(&on_screen_rect);
-		SDL_RenderCopy(sdl_renderer, tex_tileset, &sdl_source_rect, &sdl_dest_rect);*/
+		on_screen_rect.position.x += CHARACTER_WIDTH;
 	}
 }
 

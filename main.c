@@ -24,6 +24,8 @@ void test_world_loading(void);
 
 void test_line_segment_intersect(void);
 
+void test_vector_sum_array(void);
+
 void scanf_line_segment(LineSegment* ls);
 
 
@@ -77,6 +79,18 @@ void test_game_creation(void)
 	Game* game = Game_create();
 	Game_start(game);
 	Game_destroy(game);
+}
+
+
+void test_vector_sum_array(void)
+{
+	Vector2D vecs[] = {
+		{ .x = 12, .y = 23 },
+		{ .x = 34, .y = 45 },
+		{ .x = 56, .y = 67 }
+	};
+	Vector2D result = Vector2D_sum_array(vecs, 3);
+	Log("test_vector_sum_array", "result: [ x = %f | y = %f ]", result.x, result.y);
 }
 
 

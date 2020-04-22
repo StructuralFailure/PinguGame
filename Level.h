@@ -13,6 +13,7 @@ typedef enum LevelCellType {
 	LCT_LADDER = 2,
 	LCT_ITEM_BLOCK = 3,
 	LCT_SEMISOLID_BLOCK = 4,
+	LCT_EMPTY_ITEM_BLOCK = 5,
 	__LCT_COUNT
 } LevelCellType;
 
@@ -21,7 +22,7 @@ typedef enum LevelCellTypeFlags {
 	LCTF_NONE = 0,
 	LCTF_SOLID = 1,
 	LCTF_SEMISOLID = 2, /* can only be passed through from the bottom */
-	LCTF_INVISIBLE = 3
+	LCTF_INVISIBLE = 4
 } LevelCellTypeFlags;
 
 
@@ -47,6 +48,7 @@ bool Level_is_solid(Level* level, int x, int y);
 bool Level_is_solid_v2d(Level* level, Vector2DInt* cell);
 LevelCellTypeFlags Level_get_cell_type_flags(Level* level, int x, int y);
 LevelCellTypeProperties* Level_get_cell_type_properties(Level* level, int x, int y);
+bool Level_set_cell_type(Level* level, int x, int y, LevelCellType type);
 
 
 #endif

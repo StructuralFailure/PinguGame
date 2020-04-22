@@ -11,7 +11,7 @@ Entity* EntityLineDrawer_create()
 {
 	Entity* line_drawer = Entity_create();
 	if (!line_drawer) {
-		Log_error("EntityLineDrawer", "failed to create.");
+		Log_error("EntityLineDrawer", "failed to create entity.");
 		return NULL;
 	}
 	line_drawer->type = ET_LINE_DRAWER;
@@ -63,7 +63,7 @@ void EntityLineDrawer_update(Entity* entity)
 			} else {
 				data->ls_b_is_finished = false;
 			}
-			
+
 			ls_current->point_a = (Vector2D) {
 				.x = mouse_x / RENDER_SCALE_FACTOR,
 				.y = mouse_y / RENDER_SCALE_FACTOR

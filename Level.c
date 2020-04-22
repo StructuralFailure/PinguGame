@@ -29,34 +29,40 @@ void init_cell_type_properties()
 	 */
 	cell_type_properties = calloc(__LCT_COUNT, sizeof(LCTProperties));
 
-	cell_type_properties    [LCT_EMPTY]          = (LCTProperties) {
+	cell_type_properties    [LCT_EMPTY]            = (LCTProperties) {
 		.type = LCT_EMPTY,
 		.flags = 0,
 		.texture = NULL
 	};
 
-	cell_type_properties    [LCT_SOLID_BLOCK]    = (LCTProperties) {
+	cell_type_properties    [LCT_SOLID_BLOCK]      = (LCTProperties) {
 		.type = LCT_SOLID_BLOCK,
 		.flags = LCTF_SOLID,
 		.texture = SDLHelper_load_texture("assets/gfx/solid_block_tileset.bmp")
 	};
 	
-	cell_type_properties    [LCT_LADDER]         = (LCTProperties) {
+	cell_type_properties    [LCT_LADDER]           = (LCTProperties) {
 		.type = LCT_LADDER,
 		.flags = 0,
 		.texture = SDLHelper_load_texture("assets/gfx/ladder.bmp")
 	};
 
-	cell_type_properties    [LCT_ITEM_BLOCK]      = (LCTProperties) {
+	cell_type_properties    [LCT_ITEM_BLOCK]       = (LCTProperties) {
 		.type = LCT_ITEM_BLOCK,
 		.flags = LCTF_SOLID,
 		.texture = SDLHelper_load_texture("assets/gfx/item_block.bmp")
 	};
 
-	cell_type_properties    [LCT_SEMISOLID_BLOCK] = (LCTProperties) {
+	cell_type_properties    [LCT_SEMISOLID_BLOCK]  = (LCTProperties) {
 		.type = LCT_SEMISOLID_BLOCK,
 		.flags = LCTF_SEMISOLID,
 		.texture = SDLHelper_load_texture("assets/gfx/semisolid_block.bmp")
+	};
+
+	cell_type_properties    [LCT_EMPTY_ITEM_BLOCK] = (LCTProperties) {
+		.type = LCT_EMPTY_ITEM_BLOCK,
+		.flags = LCTF_SOLID,
+		.texture = SDLHelper_load_texture("assets/gfx/empty_item_block.bmp")
 	};
 }
 
@@ -177,7 +183,8 @@ void Level_destroy(Level* level)
 }
 
 
-LevelCellTypeProperties* Level_get_cell_type_properties(Level* level, int x, int y) {
+LevelCellTypeProperties* Level_get_cell_type_properties(Level* level, int x, int y) 
+{
 	if (x < 0 || x >= level->width ||
 	    y < 0 || y >= level->height) {
 		return NULL;;
@@ -185,8 +192,19 @@ LevelCellTypeProperties* Level_get_cell_type_properties(Level* level, int x, int
 	return &(cell_type_properties[level->colmap[y][x]]);
 }
 
+bool Level_set_cell_type(Level* level, int x, int y, LevelCellType type) 
+{
+	if (x < 0 || x >= level->width ||
+	    y < 0 || y >= level->height) {
+		return false;
+	}
+	level->colmap[y][x] = type;
+	return true;
+}
 
-LevelCellTypeFlags Level_get_cell_type_flags(Level* level, int x, int y) {
+
+LevelCellTypeFlags Level_get_cell_type_flags(Level* level, int x, int y)
+{
 	if (x < 0 || x >= level->width ||
 	    y < 0 || y >= level->height) {
 		return LCTF_NONE;

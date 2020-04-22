@@ -82,6 +82,16 @@ Vector2D Vector2D_sum(Vector2D vec_sum_a, Vector2D vec_sum_b)
 }
 
 
+Vector2D Vector2D_sum_array(Vector2D* vecs, int count) {
+	Vector2D result = { 0 };
+	for (int i = 0; i < count; ++i) {
+		result.x += vecs[i].x;
+		result.y += vecs[i].y;
+	}
+	return result;
+}
+
+
 float Vector2D_cross_product(Vector2D vec_a, Vector2D vec_b)
 {
 	return (vec_a.x * vec_b.y) - (vec_a.y * vec_b.x);
