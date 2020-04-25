@@ -52,6 +52,42 @@ void Game_destroy(Game* game)
 }
 
 
+void loop(Game* game)
+{
+	double tick_rate = TICKS_PER_SECOND;
+	unsigned int ms_last_tick = 0;
+	unsigned int ms_current;
+
+	SDL_Event e;
+	int quit = 0;
+
+	while (!quit) {
+		while (SDL_PollEvent(&e) != 0) {
+			if (e.type == SDL_QUIT) {
+				quit = 1;
+			}
+		}
+
+		ms_current = SDL_GetTicks();
+		unsigned int ms_per_tick = 1000 / tick_rate;
+		unsigned int ms_delta = ms_current - ms_last_tick;
+
+		if (ms_delta >= ms_per_tick) {
+			ms_last_tick = ms_current;
+			if (game->world) {
+				World_update(game->world);
+			}
+		}
+
+		SDL_RenderClear(sdl_renderer);
+		if (game->world) {
+			World_draw(game->world);
+		}
+		SDL_RenderPresent(sdl_renderer);
+	}
+}
+
+#if 0
 void loop(Game* game) 
 {
 	/*Entity* entity_player = EntityPlayer_create();
@@ -98,3 +134,4 @@ void loop(Game* game)
 	}
 
 }
+#endif

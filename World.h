@@ -43,7 +43,8 @@ bool World_remove_entity(World* world, Entity* entity);
 
 /*void World_set_level(World* world, Level* level);*/
 
-CollidedWith World_move_until_collision(World* world, Rectangle* rect, const Vector2D* delta_pos);
+CollidedWith World_move_until_collision(World* world, Rectangle* rect, Vector2D* delta_pos);
+CollidedWith World_move_until_collision_with_rect(World* world, Rectangle* rect, Vector2D* delta_pos, Rectangle* rect_other);
 CollidedWith World_move(World* world, Entity* entity, Vector2D* delta_pos);
 
 RectangleInt World_get_overlapping_cells(World* world, Rectangle* rect);

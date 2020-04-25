@@ -65,6 +65,7 @@ Vector2D Vector2D_difference(Vector2D vec_min, Vector2D vec_sub);
 Vector2D Vector2D_sum(Vector2D vec_sum_a, Vector2D vec_sum_b);
 Vector2D Vector2D_sum_array(Vector2D* vecs, int count);
 float    Vector2D_cross_product(Vector2D vec_a, Vector2D vec_b);
+Vector2D Vector2D_create_with_length(Vector2D vec, float length);
 
 
 #endif

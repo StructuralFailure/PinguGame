@@ -26,3 +26,22 @@ int signum(float number)
 	}
 	return 0;
 }
+
+
+/* returns the position of the first occurrence of a value inside an array, -1 otherwise. */
+int position_in_array(int* array, int array_length, int value) 
+{
+	for (int i = 0; i < array_length; ++i) {
+		if (array[i] == value) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+
+/* returns whether a specific value occurs in an array at least once. */
+bool is_in_array(int* array, int array_length, int value)
+{
+	return position_in_array(array, array_length, value) != -1;
+}

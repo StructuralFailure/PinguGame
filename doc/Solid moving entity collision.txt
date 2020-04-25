@@ -1,0 +1,20 @@
+=== Solid moving entity collision ===
+
+Step 1) Update all solid moving entities first.
+		While doing that, check for collisions with non-solid entities.
+			If there are any, move them outside the solid entity
+			by the same vector as the movement of the solid entity.
+			Now there should be no more collisions.
+
+Step 2) Now, in the normal update loop, entities can still call the move
+		function to move while taking into account collision with solid cells.
+		Somewhere in there, add checks for solid entities (maybe first)?
+
+		This way, as far as the entities are concerned, the solid entities
+		are no longer moving, therefore we can treat them similarly to solid cells.
+		It also allows to return which side of the solid entity was collided with,
+		so entities can use it to adjust their behavior accordingly,
+		i.e. reset their vertical or horizontal speed.
+
+Step 3) This should theoretically be all, but I'm sure there are some edge-cases
+		that aren't covered and are going to make this not work.

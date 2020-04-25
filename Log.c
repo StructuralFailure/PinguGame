@@ -4,10 +4,14 @@
 
 #include "Log.h"
 
+/* terminal colors
+ * errors are displayed in red, the rest in the default color.
+ */
 #define TC_RED     "\x1B[31m"
 #define TC_DEFAULT "\x1B[0m"
 
 
+/* flushing after printing necessary inside draw functions. */
 bool flush_after_printing = false;
 bool do_log = true;
 
@@ -44,6 +48,7 @@ void Log(const char* category, const char* format, ...)
 		fflush(stdout);
 	}
 }
+
 
 void Log_error(const char* category, const char* format, ...)
 {

@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include "Graphics.h"
 #include "Log.h"
 
@@ -95,4 +97,14 @@ Vector2D Vector2D_sum_array(Vector2D* vecs, int count) {
 float Vector2D_cross_product(Vector2D vec_a, Vector2D vec_b)
 {
 	return (vec_a.x * vec_b.y) - (vec_a.y * vec_b.x);
+}
+
+
+Vector2D Vector2D_create_with_length(Vector2D vec, float length)
+{
+	float current_length = sqrt(vec.x * vec.x + vec.y * vec.y);
+	return (Vector2D) {
+		.x = vec.x / current_length * length,
+		.y = vec.y / current_length * length
+	};
 }
