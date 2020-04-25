@@ -66,6 +66,12 @@ LineSegment LineSegment_add_vector(LineSegment ls, Vector2D vec)
 }
 
 
+float LineSegment_length(LineSegment* ls)
+{
+	return Vector2D_distance(ls->point_a, ls->point_b);
+}
+
+
 Vector2D Vector2D_difference(Vector2D vec_min, Vector2D vec_sub) 
 {
 	return (Vector2D) {
@@ -107,4 +113,16 @@ Vector2D Vector2D_create_with_length(Vector2D vec, float length)
 		.x = vec.x / current_length * length,
 		.y = vec.y / current_length * length
 	};
+}
+
+
+float Vector2D_length(Vector2D vec)
+{
+	return sqrt(vec.x * vec.x + vec.y * vec.y);
+}
+
+
+float Vector2D_distance(Vector2D vec_a, Vector2D vec_b)
+{
+	return Vector2D_length(Vector2D_difference(vec_b, vec_a));
 }

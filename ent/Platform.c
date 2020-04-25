@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
 #include <SDL2/SDL.h>
-#include "../Platform.h"
+#include "Platform.h"
 #include "../Entity.h"
 #include "../Log.h"
 #include "../Game.h"
@@ -9,6 +9,7 @@
 #include "../Graphics.h"
 #include "../Viewport.h"
 #include "../SDLHelper.h"
+#include "../Util.h"
 
 
 SDL_Texture* tex_platform;
@@ -18,7 +19,7 @@ Entity* EntityPlatform_create()
 {
 	Log("EntityPlatform", "creating");
 	if (!tex_platform) {
-		tex_platform = SDLHelper_load_texture("assets/gfx/platform.bmp")
+		tex_platform = SDLHelper_load_texture("assets/gfx/platform.bmp");
 	}
 
 	Entity* platform = Entity_create();
@@ -26,8 +27,10 @@ Entity* EntityPlatform_create()
 		Log_error("EntityPlatform", "create: failed to create base entity.");
 		return NULL;
 	}
+
 	platform->type = ET_PLATFORM;
-	platform->rect = (Rectangle2D) {
+	platform->is_solid = true;
+	platform->rect = (Rectangle) {
 		.position = {
 			.x = 16,
 			.y = 16
@@ -44,10 +47,11 @@ Entity* EntityPlatform_create()
 		free(platform);
 		return NULL;
 	}
+
 	data->moving_towards_destination = true;
-	data->origin = platform->rect.postiion;
+	data->origin = platform->rect.position;
 	data->destination = (Vector2D) { data->origin.x + 256, data->origin.y };
-	data->velocity = (Vector2D) { 3, 0 };
+	data->speed = 3;
 	platform->data = data;
 
 	platform->add = EntityPlatform_add;
@@ -65,13 +69,20 @@ Entity* EntityPlatform_create()
 }
 
 
+void EntityPlatform_add(Entity* entity)
+{
+
+}
+
+
 void EntityPlatform_update(Entity* entity)
 {
-	(EntityPlatformData*) data = (EntityPlatformData*)(entity->data);
+	EntityPlatformData* data = (EntityPlatformData*)(entity->data);
 	if (!data) {
 		Log_error("EntityPlatform", "update: data == NULL, update not performed.");
 		return;
 	}
+
 
 	Vector2D path = Vector2D_difference(data->destination, data->origin);
 	Vector2D delta_pos = Vector2D_create_with_length(path, data->speed);
@@ -82,21 +93,34 @@ void EntityPlatform_update(Entity* entity)
 	Vector2D end_pos = Vector2D_sum(entity->rect.position, delta_pos);
 
 	/* TODO: entity types to check are hard-coded. do this better in the future. */
-	EntityType types_to_check = {
+	EntityType types_to_check[] = {
 		ET_PLAYER,
 		ET_ENEMY
 	};
 
-	Vector2D pos_original = entity->rect;
+	Vector2D pos_original = entity->rect.position;
 
 	World* world = entity->world;
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
 		Entity* other_entity = world->entities[i];
-		if (!other_entity || !is_in_array(types_to_check, sizeof(types_to_check) / sizeof(EntityType), other_entity->type)) {
+
+		if (!other_entity) {
 			continue;
 		}
 
-		CollidedWith cw = World_move_until_collision_with_rect(world, &(entity->rect), &delta_pos, &(other_entity->rect));
+		/* check whether the type of the entity is in the array of types to check. if not, skip. */
+		bool is_in_types_array = false;
+		for (int i_type = 0; i_type < sizeof(types_to_check) / sizeof(EntityType); ++i_type) {
+			if (types_to_check[i] == other_entity->type) {
+				is_in_types_array = true;
+				break;
+			}
+		}
+		if (!is_in_types_array) {
+			continue;
+		}
+
+		CollidedWith cw = World_move_until_collision_with_flags(world, &(entity->rect), &delta_pos, CC_RECTANGLE, &(entity->rect));
 		if (cw == CW_NOTHING) {
 			continue;
 		}
@@ -104,8 +128,10 @@ void EntityPlatform_update(Entity* entity)
 
 		/* TODO: kill other entity when crushed.
 		 * right now, other entities get pushed into solid cells. this is no bueno.
+		 * do this by moving it using the World_move function. if there is a collision, die.
+		 *
+		 * TODO: make entities stick to platform
 		 */
-		Vector2D* other_entity_pos = &(other_entity->rect.position);
 		switch (cw) {
 		case CW_LEFT:
 			other_entity->rect.position.x = end_pos.x + entity->rect.size.x;
@@ -118,8 +144,16 @@ void EntityPlatform_update(Entity* entity)
 			break;
 		case CW_BOTTOM:
 			other_entity->rect.position.y = end_pos.y - other_entity->rect.size.y;
+		default:
+			;
 		}
+
+
+
+		entity->rect.position = pos_original;
 	}
+	entity->rect.position = end_pos; /* force movement, nothing can stop a platform. */
+
 }
 
 
@@ -138,7 +172,7 @@ void EntityPlatform_destroy(Entity* entity)
 		Log_error("EntityPlatform", "destroy: data is not supposed to be NULL.");
 	}
 	free(data);
-	free(platform);
+	free(entity);
 
 	Log("EntityPlatform", "destroyed.");
 }

@@ -60,12 +60,15 @@ bool Rectangle_overlap(Rectangle* rect_a, Rectangle* rect_b);
 
 bool        LineSegment_intersect(LineSegment* line_a, LineSegment* line_b);
 LineSegment LineSegment_add_vector(LineSegment ls, Vector2D vec);
+float       LineSegment_length(LineSegment* ls);
 
 Vector2D Vector2D_difference(Vector2D vec_min, Vector2D vec_sub);
 Vector2D Vector2D_sum(Vector2D vec_sum_a, Vector2D vec_sum_b);
 Vector2D Vector2D_sum_array(Vector2D* vecs, int count);
 float    Vector2D_cross_product(Vector2D vec_a, Vector2D vec_b);
 Vector2D Vector2D_create_with_length(Vector2D vec, float length);
+float    Vector2D_length(Vector2D vec);
+float    Vector2D_distance(Vector2D vec_a, Vector2D vec_b);
 
 
 #endif

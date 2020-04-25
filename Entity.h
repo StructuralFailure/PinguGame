@@ -13,6 +13,7 @@ typedef enum EntityType {
 	ET_ENEMY       = 1,
 	ET_TEXT        = 2,
 	ET_LINE_DRAWER = 3,
+	ET_PLATFORM    = 4,
 	__ET_COUNT
 } EntityType;
 
@@ -25,6 +26,7 @@ struct Entity {
 	void* data;
 	Rectangle rect; /* describes the collision rectangle */
 	Rectangle rect_prev; 
+	bool is_solid;
 
 	/* viewport support */
 	Direction (*get_direction)();

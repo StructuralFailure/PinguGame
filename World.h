@@ -21,7 +21,18 @@ typedef enum CollidedWith {
 	CW_TOP     = 2,
 	CW_RIGHT   = 4,
 	CW_BOTTOM  = 8,
+	__CW_COUNT
 } CollidedWith;
+
+
+/* bitfield */
+typedef enum CollisionChecking {
+	CC_NOTHING         = 0,
+	CC_COLMAP          = 1,
+	CC_RECTANGLE       = 2,
+	CC_SOLID_ENTITIES  = 4,
+	__CC_COUNT
+} CollisionChecking;
 
 
 typedef struct World {
@@ -43,9 +54,10 @@ bool World_remove_entity(World* world, Entity* entity);
 
 /*void World_set_level(World* world, Level* level);*/
 
-CollidedWith World_move_until_collision(World* world, Rectangle* rect, Vector2D* delta_pos);
-CollidedWith World_move_until_collision_with_rect(World* world, Rectangle* rect, Vector2D* delta_pos, Rectangle* rect_other);
 CollidedWith World_move(World* world, Entity* entity, Vector2D* delta_pos);
+CollidedWith World_move_until_collision(World* world, Rectangle* rect, Vector2D* delta_pos);
+CollidedWith World_move_until_collision_with_flags(World* world, Rectangle* rect, Vector2D* delta_pos, CollisionChecking flags, Rectangle* rect_other);
+bool World_check_colmap_collision(World* world, Rectangle* rect, Vector2D* pos_original, Rectangle* rect_last_collision);
 
 RectangleInt World_get_overlapping_cells(World* world, Rectangle* rect);
 Rectangle World_get_cell_rectangle(World* world, Vector2DInt* grid_position);
