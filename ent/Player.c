@@ -106,6 +106,8 @@ void EntityPlayer_update(Entity* entity)
 	EntityPlayerData* data = (EntityPlayerData*)entity->data;
 	const Uint8* keystate = SDL_GetKeyboardState(NULL);
 
+	//Log("EntityPlayer", "update start: %f | %f", entity->rect.position.x, entity->rect.position.y);
+
 	/* TODO: this is getting messy as fuck.
 	 * i need to find a better solution to manage state.
 	 */
@@ -185,12 +187,14 @@ void EntityPlayer_update(Entity* entity)
 		}
 
 		if (!moving_horizontally) {
+			float previous_velocity_x = data->velocity.x;
 			if (data->velocity.x > 0) {
 				data->velocity.x = max(0, data->velocity.x - 0.4);
 			} else if (data->velocity.x < 0) {
 				data->velocity.x = min(0, data->velocity.x + 0.4);
 			}
-			if (data->velocity.x == 0) {
+			if (data->velocity.x != previous_velocity_x) {
+				/* only round when first coming to a halt. */
 				entity->rect.position.x = round(entity->rect.position.x);
 			}
 		}
@@ -202,8 +206,8 @@ void EntityPlayer_update(Entity* entity)
 
 		
 		if (data->state == EPS_FALLING || 
-			data->state == EPS_JUMPING || 
-			data->state == EPS_JUMPING_CHARGING) {
+		    data->state == EPS_JUMPING || 
+		    data->state == EPS_JUMPING_CHARGING) {
 			if (cw & CW_TOP) {
 				data->state = EPS_DEFAULT;
 				data->velocity.y = 0;
@@ -217,6 +221,12 @@ void EntityPlayer_update(Entity* entity)
 		} else {
 			data->state = EPS_FALLING;
 		}
+
+		//Log("EntityPlayer", "player.y = %f", entity->rect.position.y);
+
+		/*if (cw & CW_TOP) {
+			Log("EntityPlayer", "top collision at player.y = %f", entity->rect.position.y);
+		}*/
 
 
 		if (cw & CW_BOTTOM) {
@@ -241,6 +251,8 @@ void EntityPlayer_update(Entity* entity)
 		}
 
 	}
+
+	//Log("EntityPlayer", "update start: %f | %f", entity->rect.position.x, entity->rect.position.y);
 
 }
 

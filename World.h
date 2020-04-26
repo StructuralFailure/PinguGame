@@ -36,6 +36,7 @@ typedef enum CollisionChecking {
 
 
 typedef struct World {
+	unsigned long ticks;
 	Game* game;
 	Level* level;
 	Viewport* viewport;

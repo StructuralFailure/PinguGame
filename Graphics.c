@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdio.h>
 
 #include "Graphics.h"
 #include "Log.h"
@@ -16,6 +17,16 @@ bool Rectangle_overlap(Rectangle* rect_a, Rectangle* rect_b)
 		rect_a->position.y + rect_a->size.y > rect_b->position.y &&
 		rect_a->position.x < rect_b->position.x + rect_b->size.x &&
 		rect_a->position.y < rect_b->position.y + rect_b->size.y
+	);
+}
+
+
+void Rectangle_print(Rectangle* rect) 
+{
+	printf(
+		"Rectangle { x = %f | y = %f || w = %f | h = %f }\n",
+		rect->position.x, rect->position.y,
+		rect->size.x, rect->size.y
 	);
 }
 
@@ -109,6 +120,10 @@ float Vector2D_cross_product(Vector2D vec_a, Vector2D vec_b)
 Vector2D Vector2D_create_with_length(Vector2D vec, float length)
 {
 	float current_length = sqrt(vec.x * vec.x + vec.y * vec.y);
+	if (current_length == 0) {
+		return (Vector2D) { 0, 0 };
+	}
+
 	return (Vector2D) {
 		.x = vec.x / current_length * length,
 		.y = vec.y / current_length * length

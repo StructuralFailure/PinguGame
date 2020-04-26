@@ -58,7 +58,7 @@ void Log_error(const char* category, const char* format, ...)
 
 	va_list args;
 
-	printf("%s[%s]", TC_RED, category);
+	printf("%s[%s] ", TC_RED, category);
 
 	va_start(args, format);
 	vprintf(format, args);

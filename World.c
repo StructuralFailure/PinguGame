@@ -15,13 +15,15 @@ bool (*entity_serializers[__ET_COUNT])(Entity* entity, char* output) = {
 	[ET_PLAYER]      = EntityPlayer_serialize,
 	[ET_ENEMY]       = EntityEnemy_serialize,
 	[ET_TEXT]        = EntityText_serialize,
+	[ET_PLATFORM]    = EntityPlatform_serialize
 };
 
 Entity* (*entity_deserializers[__ET_COUNT])(char* string) = {
 	[ET_PLAYER]      = EntityPlayer_deserialize,
 	[ET_ENEMY]       = EntityEnemy_deserialize,
 	[ET_TEXT]        = EntityText_deserialize,
-	[ET_LINE_DRAWER] = EntityLineDrawer_deserialize
+	[ET_LINE_DRAWER] = EntityLineDrawer_deserialize,
+	[ET_PLATFORM]    = EntityPlatform_deserialize
 };
 
 
@@ -65,6 +67,7 @@ World* World_load_from_path(const char* file_path, bool load_entities)
 		viewport->total.size.x, viewport->total.size.y
 	);
 	
+	world->ticks = 0;
 	world->level = level;
 	world->viewport = viewport;
 
@@ -148,6 +151,10 @@ void World_update(World* world)
 	}
 
 	Viewport_update(world->viewport);
+
+	//Log("World", "updated.");
+
+	++world->ticks;
 }
 
 bool World_add_entity(World* world, Entity* entity)
@@ -360,6 +367,7 @@ CollidedWith World_move_until_collision_with_flags(World* world, Rectangle* rect
 	bool is_colliding = false;
 	int dist_moved_back = 0;
 	Rectangle rect_last_collision;
+	bool last_collision_is_entity = false;
 
 	do {
 		/* (should be done, gotta test) TODO: 
@@ -367,10 +375,10 @@ CollidedWith World_move_until_collision_with_flags(World* world, Rectangle* rect
 		 */
 		is_colliding = false;
 
-		if (flags & CC_RECTANGLE && rect_other) {
-			if (Rectangle_overlap(rect, rect_other)) {
-				is_colliding = true;
-			}
+		if ((flags & CC_RECTANGLE) && rect_other && Rectangle_overlap(rect, rect_other)) {
+			is_colliding = true;
+			rect_last_collision = *rect_other;
+			last_collision_is_entity = false;
 		}
 
 		if (flags & CC_SOLID_ENTITIES) {
@@ -380,16 +388,17 @@ CollidedWith World_move_until_collision_with_flags(World* world, Rectangle* rect
 					continue;
 				}
 				if (Rectangle_overlap(rect, &(entity->rect))) {
+					rect_last_collision = entity->rect;
 					is_colliding = true;
+					last_collision_is_entity = true;
 					break;
 				}
 			}
 		}
 
-		if (flags & CC_COLMAP) {
-			if (World_check_colmap_collision(world, rect, &pos_original, &rect_last_collision)) {
-				is_colliding = true;
-			}
+		if ((flags & CC_COLMAP) && (World_check_colmap_collision(world, rect, &pos_original, &rect_last_collision))) {
+			is_colliding = true;
+			last_collision_is_entity = false;
 		}
 
 		if (is_colliding) {
@@ -453,16 +462,20 @@ CollidedWith World_move_until_collision_with_flags(World* world, Rectangle* rect
 			rect->position.y = rect_last_collision.position.y - rect->size.y;
 			return CW_TOP;
 		}
-	} if (rect->position.x + rect->size.x <= rect_last_collision.position.x) {
+	} 
+
+	if (rect->position.x + rect->size.x <= rect_last_collision.position.x) {
 		rect->position.x = rect_last_collision.position.x - rect->size.x;
 		return CW_LEFT;
 	} else if (rect->position.x >= rect_last_collision.position.x + rect_last_collision.size.x) {
 		rect->position.x = rect_last_collision.position.x + rect_last_collision.size.x;
-		printf("CW_RIGHT ");
-		fflush(stdout);
 		return CW_RIGHT;
 	} else {
-		fprintf(stderr, "stuck.");
+		Log_error("World", "move_until_collision: stuck (entity id = flags = %d).");
+		Log_error("World", "moved_rectangle:");
+		Rectangle_print(rect);
+		Log_error("World", "rect_last_collision:");
+		Rectangle_print(&rect_last_collision);
 		return CW_NOTHING;
 	}
 }

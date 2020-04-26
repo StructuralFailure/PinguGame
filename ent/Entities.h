@@ -6,6 +6,7 @@
 #include "Enemy.h"
 #include "Text.h"
 #include "LineDrawer.h"
+#include "Platform.h"
 
 
 #endif

@@ -9,6 +9,7 @@ float min(float a, float b)
 	return b;
 }
 
+
 float max(float a, float b) 
 {
 	if (a > b) {
@@ -16,6 +17,7 @@ float max(float a, float b)
 	}
 	return b;
 }
+
 
 int signum(float number)
 {

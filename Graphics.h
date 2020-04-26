@@ -57,6 +57,7 @@ typedef struct Rectangle2DInt {
 
 
 bool Rectangle_overlap(Rectangle* rect_a, Rectangle* rect_b);
+void Rectangle_print(Rectangle* rect);
 
 bool        LineSegment_intersect(LineSegment* line_a, LineSegment* line_b);
 LineSegment LineSegment_add_vector(LineSegment ls, Vector2D vec);
