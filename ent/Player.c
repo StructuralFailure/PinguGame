@@ -193,8 +193,12 @@ void EntityPlayer_update(Entity* entity)
 			} else if (data->velocity.x < 0) {
 				data->velocity.x = min(0, data->velocity.x + 0.4);
 			}
-			if (data->velocity.x != previous_velocity_x) {
+			if (data->velocity.x == 0 && data->velocity.x != previous_velocity_x) {
 				/* only round when first coming to a halt. */
+				Log(
+					"EntityPlayer", "rounding x. x = %f | previous_x = %f.",
+					data->velocity.x, previous_velocity_x
+				);
 				entity->rect.position.x = round(entity->rect.position.x);
 			}
 		}

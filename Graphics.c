@@ -5,6 +5,46 @@
 #include "Log.h"
 
 
+#define UNITS_PER_MOVEMENT
+
+
+Direction Rectangle_find_collision_sides(Rectangle* rect_moving, Rectangle* rect_static, Vector2D* delta, bool forwards)
+{
+	Vector2D unit_delta = Vector2D_create_with_length(*delta, 1);
+	bool has_collided = false;
+
+	if (forwards) {
+
+	} else {
+		Vector2D* rm_pos = &(rect_moving->position);
+		Vector2D* rm_size = &(rect_moving->size);
+		(void)rm_size;
+
+		rm_pos->x += delta->x;
+		rm_pos->y += delta->y;
+
+		bool has_collided = false;
+		bool is_colliding = false;
+
+		do {
+			if (Rectangle_overlap(rect_moving, rect_static)) {
+
+			}
+
+			if (is_colliding) {
+				has_collided = true;
+
+				rm_pos->x -= unit_delta.x;
+				rm_pos->y -= unit_delta.y;
+			}
+		} while (is_colliding);
+	}
+
+	(void)has_collided;
+	return 0;
+}
+
+
 bool Rectangle_overlap(Rectangle* rect_a, Rectangle* rect_b) 
 {
 	if (!rect_a || !rect_b) {
@@ -24,9 +64,9 @@ bool Rectangle_overlap(Rectangle* rect_a, Rectangle* rect_b)
 void Rectangle_print(Rectangle* rect) 
 {
 	printf(
-		"Rectangle { x = %f | y = %f || w = %f | h = %f }\n",
+		"Rectangle\n{ x1 = %f | y1 = %f\n   || x2 = %f | y2 = %f }\n",
 		rect->position.x, rect->position.y,
-		rect->size.x, rect->size.y
+		rect->position.x + rect->size.x, rect->position.y + rect->size.y
 	);
 }
 

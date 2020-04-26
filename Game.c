@@ -18,13 +18,15 @@ void loop(Game* game);
 
 Game* Game_create()
 {
+	Log("Game", "creating.");
+
 	Game* game = calloc(1, sizeof(Game));
 	if (!game) {
 		Log_error("Game", "failed to allocate memory");
 		return NULL;
 	}
 
-	World* world = World_load_from_path("assets/lvl/entity_test.lvl", true);
+	World* world = World_load_from_path("assets/lvl/platform_test.lvl", true);
 	if (!world) {
 		free(game);
 		Log_error("Game", "failed to load world");
@@ -42,11 +44,13 @@ void Game_start(Game* game)
 {
 	Log("Game", "starting main game loop.");
 	loop(game);
+	Log("Game", "main game loop finished.");
 }
 
 
 void Game_destroy(Game* game) 
 {
+	Log("Game", "destroying");
 	World_destroy(game->world);
 	Log("Game", "destroyed.");
 }

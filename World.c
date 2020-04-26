@@ -388,15 +388,15 @@ CollidedWith World_move_until_collision_with_flags(World* world, Rectangle* rect
 					continue;
 				}
 				if (Rectangle_overlap(rect, &(entity->rect))) {
-					rect_last_collision = entity->rect;
 					is_colliding = true;
+					rect_last_collision = entity->rect;
 					last_collision_is_entity = true;
 					break;
 				}
 			}
 		}
 
-		if ((flags & CC_COLMAP) && (World_check_colmap_collision(world, rect, &pos_original, &rect_last_collision))) {
+		if ((flags & CC_COLMAP) && World_check_colmap_collision(world, rect, &pos_original, &rect_last_collision)) {
 			is_colliding = true;
 			last_collision_is_entity = false;
 		}
@@ -432,6 +432,21 @@ CollidedWith World_move_until_collision_with_flags(World* world, Rectangle* rect
 		rect->position.y = rect_last_collision.position.y + rect_last_collision.size.y;
 		return CW_BOTTOM;
 	} else if (rect->position.y + rect->size.y <= rect_last_collision.position.y) {
+		/* differentiate between entities and cells */
+		bool valid_top_collision = false;
+
+		if (last_collision_is_entity) {
+			/*Log("World", "entity collision: rect_last_collision:");
+			Rectangle_print(&rect_last_collision);
+			Log("World", "entity collision: rect:");
+			Rectangle_print(rect);*/
+			valid_top_collision = true;
+		} else {
+			int calc_x = rect_last_collision.position.x / CM_CELL_WIDTH;
+			int calc_y = rect_last_collision.position.y / CM_CELL_HEIGHT - 1;
+			valid_top_collision = !Level_is_solid(world->level, calc_x, calc_y);
+		}
+
 		/* since collision checks with an entity's overlapping cells are evaluated from
 		 * top to bottom and there's no early exit of the loop (TODO ?),
 		 * in the case of collision with multiple cells, the bottom-most cell will be the
@@ -456,12 +471,12 @@ CollidedWith World_move_until_collision_with_flags(World* world, Rectangle* rect
 		 */
 
 		/* calc = cell above last collision */
-		int calc_x = rect_last_collision.position.x / CM_CELL_WIDTH;
-		int calc_y = rect_last_collision.position.y / CM_CELL_HEIGHT - 1;
-		if (!Level_is_solid(world->level, calc_x, calc_y)) {
+
+
+		if (valid_top_collision) {
 			rect->position.y = rect_last_collision.position.y - rect->size.y;
 			return CW_TOP;
-		}
+		} /* else check lateral collisions */
 	} 
 
 	if (rect->position.x + rect->size.x <= rect_last_collision.position.x) {
@@ -471,7 +486,7 @@ CollidedWith World_move_until_collision_with_flags(World* world, Rectangle* rect
 		rect->position.x = rect_last_collision.position.x + rect_last_collision.size.x;
 		return CW_RIGHT;
 	} else {
-		Log_error("World", "move_until_collision: stuck (entity id = flags = %d).");
+		Log_error("World", "move_until_collision: stuck (flags = %d).", flags);
 		Log_error("World", "moved_rectangle:");
 		Rectangle_print(rect);
 		Log_error("World", "rect_last_collision:");

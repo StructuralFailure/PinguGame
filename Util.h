@@ -7,6 +7,7 @@
 /* math functions */
 float min(float a, float b);
 float max(float a, float b);
+float abs_float(float number);
 int signum(float number);
 
 /* array functions */

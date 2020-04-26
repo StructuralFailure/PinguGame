@@ -18,6 +18,13 @@ typedef enum EntityType {
 } EntityType;
 
 
+typedef enum EntityMessageType {
+	EMT_DAMAGE,
+	EMT_DO_SOMETHING_ELSE,
+	__EMT_COUNT
+} EntityMessageType;
+
+
 struct Entity {
 	unsigned long id;
 
@@ -36,6 +43,8 @@ struct Entity {
 	void (*draw)(struct Entity* entity, Viewport* viewport);
 	void (*destroy)(struct Entity* entity);
 	void (*collide)(struct Entity* entity, struct Entity* entity_other);
+
+	void (*message)(struct Entity* sender, struct Entity* receiver, EntityMessageType message_type, void* message_content);
 };
 
 

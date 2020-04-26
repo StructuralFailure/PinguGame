@@ -19,6 +19,15 @@ float max(float a, float b)
 }
 
 
+float abs_float(float number)
+{
+	if (number < 0) {
+		return -number;
+	}
+	return number;
+}
+
+
 int signum(float number)
 {
 	if (number < 0) {
