@@ -129,15 +129,20 @@ Level* Level_load_from_file(FILE* file)
 				break;
 			}
 			col = 0;
-		} else {
+			continue;
+		}
+
+        if (c == ' ') {
+            level->colmap[row][col] = 0;
+        } else {
 			/* characters for '0' to '9' are guaranteed to be
 			 * contiguous in character set
 			 */
 			int cell_type = c - '0';
 			level->colmap[row][col] = cell_type;
-			++col;
 		}
-	}
+        ++col;
+    }
 
 	/* dump level */
 	Log("Level", "content dump:");

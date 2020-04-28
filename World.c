@@ -125,7 +125,7 @@ void World_draw(World* world)
 
 void World_update(World* world) 
 {
-	/* call Entity objects' update functions */
+	/* call Entity objects' update functions, and first store their previous positions */
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
 		Entity* ent = world->entities[i];
 		if (ent && ent->update) {
@@ -152,8 +152,14 @@ void World_update(World* world)
 
 	Viewport_update(world->viewport);
 
-	//Log("World", "updated.");
+	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
+		Entity* ent = world->entities[i];
+		if (ent) {
+			ent->previous_rect = ent->rect;
+		}
+	}
 
+	//Log("World", "updated.");
 	++world->ticks;
 }
 
@@ -486,11 +492,11 @@ CollidedWith World_move_until_collision_with_flags(World* world, Rectangle* rect
 		rect->position.x = rect_last_collision.position.x + rect_last_collision.size.x;
 		return CW_RIGHT;
 	} else {
-		Log_error("World", "move_until_collision: stuck (flags = %d).", flags);
+		/*Log_error("World", "move_until_collision: stuck (flags = %d).", flags);
 		Log_error("World", "moved_rectangle:");
 		Rectangle_print(rect);
 		Log_error("World", "rect_last_collision:");
-		Rectangle_print(&rect_last_collision);
+		Rectangle_print(&rect_last_collision);*/
 		return CW_NOTHING;
 	}
 }
@@ -504,7 +510,7 @@ CollidedWith World_move_until_collision_with_flags(World* world, Rectangle* rect
  */
 CollidedWith World_move(World* world, Entity* entity, Vector2D* delta_pos) 
 {
-	Rectangle rect_start = entity->rect;
+	//Rectangle rect_start = entity->rect;
 	Vector2D rect_start_pos = entity->rect.position;
 
 
@@ -543,11 +549,6 @@ CollidedWith World_move(World* world, Entity* entity, Vector2D* delta_pos)
 		; /* movement was completed in one part */
 	}
 
-	/*if (collided_with) {
-		printf("  step 2: ");
-		print_collision(collided_with);	
-	}*/
-	entity->rect_prev = rect_start;
 	return collided_with;
 }
 

@@ -2,20 +2,46 @@
 
 (--- very important -- important - minor)
 
---- Fix segmentation fault upon going out of bounds (x+ tested)
-    No idea where it occurs.
+--- Re-vamp the way the collision engine and entities communicate
+    - Support collision of multiple entities (maybe cells) at the same time.
+      Pass an array of CollisionResult that contains all necessary information,
+      such as which entity was collided with, and which side was hit.
+    - Keep support for parameters (CC_ENTITY, CC_COLMAP, CC_RECTANGLE) to avoid
+      always checking everything. This should improve efficiency.
 
---- Implement a state machine.
+    - Idea: int /* output_length */ move_check_collisions(entity, delta_pos,
+    flags, collision, output)
+      - Moves the player to a location, then, as long as there are collisions,
+        moves him back 1 unit at a time. Each step, the colliding rectangles
+        are evaluated, and if at step n, one is missing from step n-1, we know
+        that there has been a collision and that there no longer is one. Then we
+        can add that rectangle along with some direction information to the
+        output array. The last element in the array is the first one the player
+        ran into, which is information we need often. 
 
---- Instead of using CM_CELL_WIDTH and CM_CELL_HEIGHT, add a field to
+-- Entity sorting or grouping
+   - Some types of entities should always be updated before/after other types to
+     guarantee the same outcome no matter in which order they are added to the
+     world.
+
+-- Create item block controller that checks whether the player has jumped on the
+   bottom of an item block.
+
+-- Entity: Solid entity that opens when the player gets close to it. 
+
+- Implement a state machine.
+
+- Instead of using CM_CELL_WIDTH and CM_CELL_HEIGHT, add a field to
     the Game (or Level?) structure that determines the size of a cell.
 
 -- Maybe not necessary with entity ownership: Add Entity <-> Entity communication in the form of events.
 
--- Add coins and animated
-
--- Add support for entities in level loader.
-
 - Use proper types for sizes (size_t instead of int).
 
-- Maybe rename Graphics.h to something more sensible.
+
+== Done List ==
+
+--- Fix segmentation fault upon going out of bounds (x+ tested)
+    No idea where it occurs.
+
+-- Add support for entities in level loader.

@@ -9,7 +9,7 @@
 
 typedef enum EntityPlatformMovementType {
 	EPMT_LINEAR      = 1,
-	EPMT_CIRCULAR    = 2,
+	EPMT_ELLIPTICAL  = 2,
 	EPMT_RECTANGULAR = 3,
 	__EPMT_COUNT
 } EntityPlatformMovementType;
@@ -20,17 +20,21 @@ typedef struct EntityPlatformData {
 
 	EntityPlatformMovementType movement_type;
 	Vector2D origin;
+
+    int ticks;
+    int ticks_displacement;
+    int movement_duration;
+
 	union {
-		struct {
+		struct lm {
 			Vector2D destination;
 			float speed;
 		} lm; /* linear movement */
-		struct {
-			float radius;
-		} cm; /* circular movement */
+		struct em {
+			Vector2D radius;
+			int reverse;
+		} em; /* circular movement */
 	};
-	unsigned long ticks;
-	unsigned long movement_duration;
 } EntityPlatformData;
 
 

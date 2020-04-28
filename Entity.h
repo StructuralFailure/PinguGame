@@ -14,6 +14,7 @@ typedef enum EntityType {
 	ET_TEXT        = 2,
 	ET_LINE_DRAWER = 3,
 	ET_PLATFORM    = 4,
+	ET_ITEM        = 5,
 	__ET_COUNT
 } EntityType;
 
@@ -32,7 +33,7 @@ struct Entity {
 	World* world;
 	void* data;
 	Rectangle rect; /* describes the collision rectangle */
-	Rectangle rect_prev; 
+	Rectangle previous_rect; 
 	bool is_solid;
 
 	/* viewport support */
@@ -44,7 +45,7 @@ struct Entity {
 	void (*destroy)(struct Entity* entity);
 	void (*collide)(struct Entity* entity, struct Entity* entity_other);
 
-	void (*message)(struct Entity* sender, struct Entity* receiver, EntityMessageType message_type, void* message_content);
+	void* (*message)(struct Entity* entity, struct Entity* sender, EntityMessageType message_type, void* message_payload);
 };
 
 

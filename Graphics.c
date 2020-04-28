@@ -71,6 +71,34 @@ void Rectangle_print(Rectangle* rect)
 }
 
 
+#if 0
+CollidedWith Rectangle_collision_face(Rectangle* rect_moving, Rectangle* rect_static, Vector2D* delta_pos)
+{
+	Vector2D rect_moving_original_pos = rect_moving->position;
+	float delta_pos_length = Vector2D_length(*delta_pos);
+	Vector2D delta_pos_unit = Vector2D_create_with_length(delta_pos, 1);
+	rect_moving->position = Vector2D_sum(rect_moving->position, *delta_pos);
+
+	bool has_collided = false;
+	float distance_traveled_back = 0;
+	while (Rectangle_overlap(rect_moving, rect_static)) {
+		has_collided = true;
+		rect_moving->position = Vector2D_difference(rect_moving->position, delta_pos_unit);
+		dist_traveled_back += 1;
+
+		if (distance_traveled_back >= delta_pos_length) {
+			rect_moving->position = rect_moving_original_pos;
+			break; /* we can't assume that there was no collision before the function
+			        * was called, so we break out of the loop to make sure it terminates.
+			        */
+		}
+	}
+
+
+}
+#endif
+
+
 bool LineSegment_intersect(LineSegment* ls_a, LineSegment* ls_b)
 {
 	if (!ls_a || !ls_b) {

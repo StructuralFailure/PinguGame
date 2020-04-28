@@ -31,6 +31,10 @@ void scanf_line_segment(LineSegment* ls);
 
 int main(int argc, char** argv) 
 {
+    if (argc >= 1) {
+        printf("%s\n", argv[0]);
+    }
+
 	Log_set_flush_after_printing(true);
 	E_SDL sdl_e;
 	if ((sdl_e = SDLHelper_init()) != E_SDL_SUCCESS) {

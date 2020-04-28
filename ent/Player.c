@@ -69,6 +69,7 @@ Entity* EntityPlayer_create()
 	player->destroy = EntityPlayer_destroy;
 	player->collide = EntityPlayer_collide;
 	player->get_direction = EntityPlayer_viewport_get_direction;
+	player->message = EntityPlayer_message;
 
 
 	data->state = EPS_DEFAULT;
@@ -80,6 +81,7 @@ Entity* EntityPlayer_create()
 	};
 	data->facing = EPF_RIGHT;
 	data->jump_charge_counter = 0;
+	data->starting_pos = (Vector2D) { 0 };
 
 	return player;
 }
@@ -98,6 +100,8 @@ void EntityPlayer_add(Entity* entity)
 		.y = 8
 	};
 	World_add_entity(entity->world, data->entity_text);
+
+	data->starting_pos = entity->rect.position;
 }
 
 
@@ -194,12 +198,12 @@ void EntityPlayer_update(Entity* entity)
 				data->velocity.x = min(0, data->velocity.x + 0.4);
 			}
 			if (data->velocity.x == 0 && data->velocity.x != previous_velocity_x) {
-				/* only round when first coming to a halt. */
-				Log(
-					"EntityPlayer", "rounding x. x = %f | previous_x = %f.",
-					data->velocity.x, previous_velocity_x
-				);
-				entity->rect.position.x = round(entity->rect.position.x);
+				float delta_x_rounded = round(entity->rect.position.x) - entity->rect.position.x;
+				Vector2D delta = {
+					.x = delta_x_rounded,
+					.y = 0
+				};
+				World_move(entity->world, entity, &delta);
 			}
 		}
 
@@ -317,6 +321,19 @@ void EntityPlayer_destroy(Entity* entity)
 	free(entity);
 
 	Log("EntityPlayer", "destroyed.");
+}
+
+
+void* EntityPlayer_message(Entity* entity, Entity* sender, EntityMessageType message_type, void* payload)
+{
+    EntityPlayerData* data = (EntityPlayerData*)(entity->data);
+    entity->rect.position = data->starting_pos;
+
+	if (sender->type == ET_PLATFORM && message_type == EMT_DAMAGE) {
+		Log("EntityPlayer", "we appear to have died.");
+
+	}
+	return NULL;
 }
 
 
