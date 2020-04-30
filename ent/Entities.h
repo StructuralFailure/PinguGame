@@ -7,6 +7,7 @@
 #include "Text.h"
 #include "LineDrawer.h"
 #include "Platform.h"
+#include "Snail.h"
 
 
 #endif

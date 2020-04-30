@@ -51,6 +51,28 @@ Viewport* Viewport_create()
 
 void Viewport_draw_texture(Viewport* viewport, Rectangle* rect_source, Rectangle* rect_dest, SDL_Texture* texture) 
 {
+	Viewport_draw_texture_extended(viewport, rect_source, rect_dest, texture, SDL_FLIP_NONE);
+
+	/*SDL_Rect sdl_rect_source;
+	SDL_Rect* sdl_rect_source_ptr = NULL;
+	if (rect_source) {
+		sdl_rect_source = SDLHelper_get_sdl_rect(rect_source);
+		sdl_rect_source_ptr = &sdl_rect_source;
+	}
+
+	SDL_Rect sdl_rect_dest = SDLHelper_get_sdl_rect(rect_dest);
+
+	sdl_rect_dest.x += viewport->total.position.x;
+	sdl_rect_dest.y += viewport->total.position.y;
+	sdl_rect_dest.x -= viewport->visible.position.x;
+	sdl_rect_dest.y -= viewport->visible.position.y;
+
+	SDL_RenderCopy(sdl_renderer, texture, sdl_rect_source_ptr, &sdl_rect_dest);*/
+}
+
+
+void Viewport_draw_texture_extended(Viewport* viewport, Rectangle* rect_source, Rectangle* rect_dest, SDL_Texture* texture, SDL_RendererFlip flip)
+{
 	SDL_Rect sdl_rect_source;
 	SDL_Rect* sdl_rect_source_ptr = NULL;
 	if (rect_source) {
@@ -65,7 +87,7 @@ void Viewport_draw_texture(Viewport* viewport, Rectangle* rect_source, Rectangle
 	sdl_rect_dest.x -= viewport->visible.position.x;
 	sdl_rect_dest.y -= viewport->visible.position.y;
 
-	SDL_RenderCopy(sdl_renderer, texture, sdl_rect_source_ptr, &sdl_rect_dest);
+	SDL_RenderCopyEx(sdl_renderer, texture, sdl_rect_source_ptr, &sdl_rect_dest, 0, NULL, flip);
 }
 
 

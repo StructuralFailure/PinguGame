@@ -15,12 +15,15 @@ typedef enum EntityType {
 	ET_LINE_DRAWER = 3,
 	ET_PLATFORM    = 4,
 	ET_ITEM        = 5,
+	ET_CONTROLLER  = 6,
+	ET_SNAIL       = 7,
 	__ET_COUNT
 } EntityType;
 
 
 typedef enum EntityMessageType {
-	EMT_DAMAGE,
+	EMT_I_DAMAGED_YOU,
+	EMT_YOU_DAMAGED_ME,
 	EMT_DO_SOMETHING_ELSE,
 	__EMT_COUNT
 } EntityMessageType;

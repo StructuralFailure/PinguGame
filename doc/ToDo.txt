@@ -17,7 +17,10 @@
         that there has been a collision and that there no longer is one. Then we
         can add that rectangle along with some direction information to the
         output array. The last element in the array is the first one the player
-        ran into, which is information we need often. 
+        ran into, which is information we need often.
+
+-- Improve collision algorithm by implementing a way of doing collision detection
+   with two moving entities.
 
 -- Entity sorting or grouping
    - Some types of entities should always be updated before/after other types to

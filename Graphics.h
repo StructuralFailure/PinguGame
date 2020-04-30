@@ -12,7 +12,6 @@ typedef enum Direction {
 	DIR_UP = 2,
 	DIR_RIGHT = 4,
 	DIR_DOWN = 8,
-	__DIR_COUNT
 } Direction;
 
 
@@ -71,6 +70,11 @@ float    Vector2D_cross_product(Vector2D vec_a, Vector2D vec_b);
 Vector2D Vector2D_create_with_length(Vector2D vec, float length);
 float    Vector2D_length(Vector2D vec);
 float    Vector2D_distance(Vector2D vec_a, Vector2D vec_b);
+Vector2D Vector2D_normal_clockwise(Vector2D vec);
+Vector2D Vector2D_normal_counterclockwise(Vector2D vec);
+
+Vector2D Direction_unit_vector(Direction);
+
 
 
 #endif

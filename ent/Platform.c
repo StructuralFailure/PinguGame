@@ -88,11 +88,7 @@ void EntityPlatform_add(Entity* entity)
 
 void EntityPlatform_update(Entity* entity)
 {
-	EntityPlatformData* data = (EntityPlatformData*)(entity->data);
-	if (!data) {
-		Log_error("EntityPlatform", "update: data == NULL, update not performed.");
-		return;
-	}
+    ENTITY_DATA_ASSERT(Platform);
 
 	Vector2D pos_original = entity->rect.position;
 	Vector2D end_pos = entity->rect.position;
@@ -198,19 +194,15 @@ void EntityPlatform_update(Entity* entity)
 		switch (cw) {
 		case CW_LEFT:
 			other_entity_end_pos.x = end_pos.x + entity->rect.size.x;
-			//other_entity->rect.position.x = end_pos.x + entity->rect.size.x;
 			break;
 		case CW_TOP:
 			other_entity_end_pos.y = end_pos.y + entity->rect.size.y;
-			//other_entity->rect.position.y = end_pos.y + entity->rect.size.y;
 			break;
 		case CW_RIGHT:
 			other_entity_end_pos.x = end_pos.x - other_entity->rect.size.x;
-			//other_entity->rect.position.x = end_pos.x - other_entity->rect.size.x;
 			break;
 		case CW_BOTTOM:
 			other_entity_end_pos.y = end_pos.y - other_entity->rect.size.y;
-			//other_entity->rect.position.y = end_pos.y - other_entity->rect.size.y;
 			break;
 		default:
 			;
@@ -224,7 +216,7 @@ void EntityPlatform_update(Entity* entity)
 			/* crushed. */
 			Log("Platform", "update: other entity crushed.");
 			if (other_entity->message) {
-				other_entity->message(other_entity, entity, EMT_DAMAGE, NULL);
+				other_entity->message(other_entity, entity, EMT_I_DAMAGED_YOU, NULL);
 			}
 		}
 	}
@@ -245,9 +237,6 @@ void EntityPlatform_destroy(Entity* entity)
 	Log("EntityPlatform", "destroying.");
 
 	EntityPlatformData* data = (EntityPlatformData*)(entity->data);
-	if (!data) {
-		Log_error("EntityPlatform", "destroy: data is not supposed to be NULL.");
-	}
 	free(data);
 	free(entity);
 
@@ -325,7 +314,7 @@ Entity* EntityPlatform_deserialize(char* input)
 		float radius_x;
 		float radius_y;
 		int reverse;
-		if (sscanf(input, "%f %f %f%n", &radius_x, &radius_y, &reverse, &bytes_read) != 3) {
+		if (sscanf(input, "%f %f %d%n", &radius_x, &radius_y, &reverse, &bytes_read) != 3) {
 			Log_error("EntityPlatform", "deserialize: elliptical movement: invalid argument count (expected 3).");
 			success = false;
 		} else {

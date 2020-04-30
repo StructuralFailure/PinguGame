@@ -6,7 +6,7 @@
 
 
 typedef struct EntityTextData {
-	char* text;
+	char* text; /* not owned by this entity. */
 } EntityTextData;
 
 

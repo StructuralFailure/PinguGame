@@ -59,7 +59,7 @@ Entity* EntityEnemy_create()
 	enemy->update = EntityEnemy_update;
 	enemy->draw = EntityEnemy_draw;
 	enemy->destroy = EntityEnemy_destroy;
-	enemy->collide = NULL;
+	enemy->collide = EntityEnemy_collide;
 
 	return enemy;
 }
@@ -72,7 +72,7 @@ void EntityEnemy_add(Entity* entity)
 
 void EntityEnemy_update(Entity* entity) 
 {
-	EntityEnemyData* data = (EntityEnemyData*)(entity->data);
+    ENTITY_DATA_ASSERT(Enemy);
 
 	Vector2D* v = &(data->velocity);
 	v->y = min(v->y + GRAVITY, MAX_FALL_SPEED);
@@ -109,6 +109,40 @@ void EntityEnemy_destroy(Entity* entity)
 }
 
 
+void EntityEnemy_collide(Entity* entity, Entity* entity_other)
+{
+    if (entity_other->type != ET_PLAYER) {
+        /* don't care about collisions with entities other than the player.
+         * TODO: make enemies turn around when they run into one another.
+         */
+        return;
+    }
+
+    Rectangle eo_previous_rect = entity_other->previous_rect;
+
+    Vector2D eo_delta_pos = Vector2D_difference(
+            entity_other->rect.position,
+            entity_other->previous_rect.position
+    );
+
+    CollidedWith collided_with = World_move_until_collision_with_flags(
+            entity->world, &eo_previous_rect, &eo_delta_pos, CC_RECTANGLE, &(entity->rect)
+    );
+
+    if (collided_with != CW_TOP) {
+        Log("EntityEnemy", "collide: damaged player.");
+        if (entity_other->message) {
+            entity_other->message(entity_other, entity, EMT_I_DAMAGED_YOU, NULL);
+        }
+    } else {
+        Log("EntityEnemy", "collide: player damaged me.");
+        if (entity_other->message) {
+            entity_other->message(entity_other, entity, EMT_YOU_DAMAGED_ME, NULL);
+        }
+    }
+}
+
+
 bool EntityEnemy_serialize(Entity* entity, char* output)
 {
 	return false;
@@ -126,11 +160,15 @@ Entity* EntityEnemy_deserialize(char* input)
 	}
 
 	EntityType type;
+	int position_x;
+	int position_y;
 
-	if (sscanf(input, "%d %f %f", &type, &(enemy->rect.position.x), &(enemy->rect.position.y)) != 3) {
+	if (sscanf(input, "%d %d %d", &type, &position_x, &position_y) != 3) {
 		Log_error("EntityEnemy", "deserialize: invalid argument count");
 		return NULL;
 	}
+
+	enemy->rect.position = (Vector2D) { position_x, position_y };
 
 	Log("EntityEnemy", "deserialized.");
 	return enemy;

@@ -26,7 +26,7 @@ Game* Game_create()
 		return NULL;
 	}
 
-	World* world = World_load_from_path("assets/lvl/platform_test.lvl", true);
+	World* world = World_load_from_path("assets/lvl/snail_test.lvl", true);
 	if (!world) {
 		free(game);
 		Log_error("Game", "failed to load world");

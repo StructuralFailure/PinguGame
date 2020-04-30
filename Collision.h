@@ -18,6 +18,7 @@ typedef struct Collision {
 	union {
 		Entity* solid_entity;
 		Rectangle* rect;
+		Vector2DInt* colmap_pos;
 	};
 	Direction direction;
 } Collision;

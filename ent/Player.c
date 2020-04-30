@@ -28,6 +28,7 @@ SDL_Texture* tex_player_right;
 
 
 void handle_item_block_collision(Entity*);
+void handle_enemy_collision(Entity*, Entity* entity_other);
 
 
 Entity* EntityPlayer_create()
@@ -107,7 +108,8 @@ void EntityPlayer_add(Entity* entity)
 
 void EntityPlayer_update(Entity* entity)
 {
-	EntityPlayerData* data = (EntityPlayerData*)entity->data;
+	ENTITY_DATA_ASSERT(Player);
+
 	const Uint8* keystate = SDL_GetKeyboardState(NULL);
 
 	//Log("EntityPlayer", "update start: %f | %f", entity->rect.position.x, entity->rect.position.y);
@@ -264,15 +266,18 @@ void EntityPlayer_update(Entity* entity)
 
 }
 
-void EntityPlayer_collide(Entity* entity, Entity* entity_other)
-{
-	/*printf("[ collision detected ] type: %d\n", entity_other->type);*/
+
+void EntityPlayer_collide(Entity* entity, Entity* entity_other) {
+    ENTITY_DATA_ASSERT(Player);
+
 }
+
 
 void EntityPlayer_draw(Entity* entity, Viewport* viewport) 
 {
+    ENTITY_DATA_ASSERT(Player);
+
 	Rectangle rect = entity->rect;
-	EntityPlayerData* data = (EntityPlayerData*)(entity->data);
 	SDL_Texture* tex;
 	if (data->facing == EPF_RIGHT) {
 		tex = tex_player_right;
@@ -295,7 +300,7 @@ Direction EntityPlayer_viewport_get_direction(Entity* entity)
 {
 	EntityPlayerData* data = (EntityPlayerData*)(entity->data);
 
-	Direction direction = DIR_UP | DIR_DOWN;
+	Direction direction = DIR_UP | DIR_DOWN; /* force vertical viewport */
 	if (data->facing == EPF_RIGHT) {
 		return direction |= DIR_RIGHT;
 	} else {
@@ -308,7 +313,8 @@ Direction EntityPlayer_viewport_get_direction(Entity* entity)
 
 void EntityPlayer_destroy(Entity* entity)
 {
-	EntityPlayerData* data = (EntityPlayerData*)(entity->data);
+    ENTITY_DATA(Player);
+	//EntityPlayerData* data = (EntityPlayerData*)(entity->data);
 
 	if (entity->world) {
 		if (entity->world->viewport) {
@@ -326,13 +332,14 @@ void EntityPlayer_destroy(Entity* entity)
 
 void* EntityPlayer_message(Entity* entity, Entity* sender, EntityMessageType message_type, void* payload)
 {
-    EntityPlayerData* data = (EntityPlayerData*)(entity->data);
-    entity->rect.position = data->starting_pos;
+    ENTITY_DATA(Player);
+    //EntityPlayerData* data = (EntityPlayerData*)(entity->data);
 
-	if (sender->type == ET_PLATFORM && message_type == EMT_DAMAGE) {
-		Log("EntityPlayer", "we appear to have died.");
-
-	}
+    if (message_type == EMT_I_DAMAGED_YOU) {
+        entity->rect.position = data->starting_pos;
+    } else if (sender->type == ET_ENEMY && message_type == EMT_YOU_DAMAGED_ME) {
+        data->velocity.y *= -1;
+    }
 	return NULL;
 }
 
@@ -388,4 +395,10 @@ void handle_item_block_collision(Entity* entity)
 		Log("EntityPlayer", "item block was hit from below.");
 		Level_set_cell_type(level, current_cell.x, current_cell.y, LCT_EMPTY_ITEM_BLOCK);
 	}
+}
+
+
+void handle_enemy_collision(Entity* entity, Entity* entity_other)
+{
+
 }

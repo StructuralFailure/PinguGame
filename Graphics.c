@@ -209,3 +209,36 @@ float Vector2D_distance(Vector2D vec_a, Vector2D vec_b)
 {
 	return Vector2D_length(Vector2D_difference(vec_b, vec_a));
 }
+
+
+Vector2D Direction_vector(Direction dir, float length)
+{
+    Vector2D vector;
+    if (dir & DIR_LEFT) {
+        --vector.x;
+    }
+    if (dir & DIR_UP) {
+        --vector.y;
+    }
+    if (dir & DIR_RIGHT) {
+        ++vector.x;
+    }
+    if (dir & DIR_DOWN) {
+        ++vector.y;
+    }
+    vector.x *= length;
+    vector.y *= length;
+    return vector;
+}
+
+
+Vector2D Vector_normal_clockwise(Vector2D vec)
+{
+	return (Vector2D) { -vec.y, vec.x };
+}
+
+
+Vector2D Vector_normal_counterclockwise(Vector2D vec)
+{
+	return (Vector2D) { vec.y, -vec.x };
+}

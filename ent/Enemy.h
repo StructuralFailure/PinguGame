@@ -23,6 +23,7 @@ void EntityEnemy_add(Entity* entity);
 void EntityEnemy_update(Entity* entity);
 void EntityEnemy_draw(Entity* entity, Viewport* viewport);
 void EntityEnemy_destroy(Entity* entity);
+void EntityEnemy_collide(Entity* entity, Entity* entity_other);
 
 /* saving and loading */
 bool EntityEnemy_serialize(Entity* entity, char* output);

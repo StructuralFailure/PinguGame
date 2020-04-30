@@ -11,6 +11,7 @@
 
 
 /* what in the ever-loving fuck? */
+
 bool (*entity_serializers[__ET_COUNT])(Entity* entity, char* output) = {
 	[ET_PLAYER]      = EntityPlayer_serialize,
 	[ET_ENEMY]       = EntityEnemy_serialize,
@@ -23,7 +24,8 @@ Entity* (*entity_deserializers[__ET_COUNT])(char* string) = {
 	[ET_ENEMY]       = EntityEnemy_deserialize,
 	[ET_TEXT]        = EntityText_deserialize,
 	[ET_LINE_DRAWER] = EntityLineDrawer_deserialize,
-	[ET_PLATFORM]    = EntityPlatform_deserialize
+	[ET_PLATFORM]    = EntityPlatform_deserialize,
+	[ET_SNAIL]       = EntitySnail_deserialize
 };
 
 
@@ -79,7 +81,7 @@ World* World_load_from_path(const char* file_path, bool load_entities)
 		char line_buffer[256];
 
 		while (fgets(line_buffer, sizeof(line_buffer), file)) {
-			if (line_buffer[0] == '\n') {
+			if (line_buffer[0] == '\n' || line_buffer[0] == '#') {
 				continue;
 			}
 			int entity_id;
@@ -134,8 +136,8 @@ void World_update(World* world)
 	}
 
 	/* check for collisions */
-	for (int ea_i = 0; ea_i < MAX_ENTITY_COUNT; ++ea_i) {
-		Entity* ea = world->entities[ea_i];
+    for (int ea_i = 0; ea_i < MAX_ENTITY_COUNT; ++ea_i) {
+        Entity* ea = world->entities[ea_i];
 		if (!(ea && ea->collide)) {
 			continue;
 		}
