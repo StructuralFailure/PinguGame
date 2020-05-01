@@ -178,14 +178,25 @@ bool World_add_entity(World* world, Entity* entity)
 	Log("World", "adding entity. [ type = %d | id = %d ]", entity->type, entity->id);
 
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
-		if (!world->entities[i]) {
-			entity->world = world;
-			world->entities[i] = entity;
-			if (entity->add) {
-				entity->add(entity);
-			}
-			return true;
+		if (world->entities[i]) {
+			continue;
 		}
+		entity->world = world;
+		world->entities[i] = entity;
+		if (entity->add) {
+			entity->add(entity);
+		}
+
+		/* inform other entities. */
+		for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
+			Entity* ent = world->entities[i];
+			if (!ent || !ent->added_other_entity) {
+				continue;
+			}
+			ent->added_other_entity(ent, entity);
+		}
+
+		return true;
 	}
 	return false;
 }
@@ -205,10 +216,20 @@ bool World_remove_entity(World* world, Entity* entity)
 
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
 		if (world->entities[i] == entity) {
+			/* inform other entities. */
+			for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
+				Entity* ent;
+				if (!ent || !ent->removing_other_entity) {
+					continue;
+				}
+				ent->removing_other_entity(ent, entity);
+			}
+
 			if (entity->destroy) {
 				entity->destroy(entity);
 			}
 			world->entities[i] = NULL;
+
 			return true;
 		}
 	}
@@ -347,17 +368,18 @@ CollidedWith World_move_until_collision_with_flags(World* world, Rectangle* rect
 		return CW_NOTHING;
 	}
 
-
+	/* unit vector of delta position (length = 1, kinda arbitrary but works.)
+	 * if the length of delta_pos is zero, we can't determine a unit vector, so
+	 * it'll have the value (0, 0).
+	 */
 	float delta_length = sqrt(delta_pos->x * delta_pos->x + delta_pos->y * delta_pos->y);
-	if (delta_length == 0) {
-		return CW_NOTHING;
+	Vector2D delta_pos_unit = { 0 };
+	if (delta_length > 0) {
+		delta_pos_unit = (Vector2D) {
+				.x = delta_pos->x / delta_length,
+				.y = delta_pos->y / delta_length
+		};
 	}
-
-	/* normal vector of delta position (length = 1, kinda arbitrary but works) */
-	Vector2D delta_pos_norm = {
-		.x = delta_pos->x / delta_length,
-		.y = delta_pos->y / delta_length
-	};
 
 	Vector2D pos_original = rect->position;
 
@@ -412,8 +434,8 @@ CollidedWith World_move_until_collision_with_flags(World* world, Rectangle* rect
 		if (is_colliding) {
 			has_collided = true;
 
-			rect->position.x -= delta_pos_norm.x;
-			rect->position.y -= delta_pos_norm.y;
+			rect->position.x -= delta_pos_unit.x;
+			rect->position.y -= delta_pos_unit.y;
 			dist_moved_back += 1;
 
 			if (dist_moved_back >= delta_length) {
@@ -499,7 +521,8 @@ CollidedWith World_move_until_collision_with_flags(World* world, Rectangle* rect
 		Rectangle_print(rect);
 		Log_error("World", "rect_last_collision:");
 		Rectangle_print(&rect_last_collision);*/
-		return CW_NOTHING;
+		//return CW_NOTHING;
+		return CW_STUCK;
 	}
 }
 

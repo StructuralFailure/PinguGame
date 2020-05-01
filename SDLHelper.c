@@ -29,8 +29,8 @@ E_SDL SDLHelper_init(void)
 		return E_SDL_RENDERER;
 	}
 
-	printf("[SDL] initialized\n");
-	SDL_SetRenderDrawColor(sdl_renderer, 0xB8, 0xE2, 0xF2, 0xFF);
+	printf("[SDL] initialized\n"); /* caecff */
+	SDL_SetRenderDrawColor(sdl_renderer, 0xCA, 0xEC, 0xFF, 0xFF);
 	SDL_RenderSetScale(sdl_renderer, RENDER_SCALE_FACTOR, RENDER_SCALE_FACTOR);
 
 	return E_SDL_SUCCESS;

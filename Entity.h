@@ -49,6 +49,9 @@ struct Entity {
 	void (*collide)(struct Entity* entity, struct Entity* entity_other);
 
 	void* (*message)(struct Entity* entity, struct Entity* sender, EntityMessageType message_type, void* message_payload);
+
+	void (*added_other_entity)(struct Entity* entity, struct Entity* entity_other);
+	void (*removing_other_entity)(struct Entity* entity, struct Entity* entity_other);
 };
 
 

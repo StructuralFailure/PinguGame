@@ -17,11 +17,11 @@
 typedef enum CollidedWith {
 	/* bit field as there can be multiple collisions in one step */
 	CW_NOTHING = 0,
-	CW_LEFT    = 1,
-	CW_TOP     = 2,
-	CW_RIGHT   = 4,
-	CW_BOTTOM  = 8,
-	__CW_COUNT
+	CW_STUCK   = 1,
+	CW_LEFT    = 2,
+	CW_TOP     = 4,
+	CW_RIGHT   = 8,
+	CW_BOTTOM  = 16,
 } CollidedWith;
 
 

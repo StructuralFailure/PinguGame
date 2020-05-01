@@ -23,7 +23,11 @@ typedef enum EntitySnailState {
 typedef struct EntitySnailData {
     EntitySnailStickingDirection sticking; /* which side OF THE SNAIL is sticking to the block, NOT which face of the block it's sticking to */
     bool crawling_clockwise; /* refers to inner turns, will be reversed when there is an outer turn. */
+    float falling_speed;
     EntitySnailState state;
+    EntitySnailState previous_state;
+
+    Entity* locked_onto;
 } EntitySnailData;
 
 
@@ -34,6 +38,9 @@ void    EntitySnail_draw(Entity*, Viewport*);
 void    EntitySnail_destroy(Entity*);
 void    EntitySnail_collide(Entity*, Entity* entity_other);
 void*   EntitySnail_message(Entity* receiver, Entity* sender, EntityMessageType, void* payload);
+
+void EntitySnail_added_other_entity(Entity* entity, Entity* entity_other);
+void EntitySnail_removing_other_entity(Entity* entity, Entity* entity_other);
 
 bool EntitySnail_serialize(Entity*, char* output);
 Entity* EntitySnail_deserialize(char* input);

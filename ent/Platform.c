@@ -351,18 +351,11 @@ Vector2D get_coordinates_elliptical_movement(Entity* entity) {
 		.y = data->em.radius.y * sin(angle)
 	};
 
-	//Log("Platform", "path_from_origin = { %f | %f }", path_from_origin.x, path_from_origin.y);
-
-	//Log("EntityPlatform", "get_coordinates_circular_movement: radians_per_tick = %f", radians_per_tick);
-	//Log("EntityPlatform", "path_from_origin = { %f | %f }", path_from_origin.x, path_from_origin.y);
-	//Log("EntityPlatform", "origin = { %f | %f )", data->origin.x, data->origin.y);
-
 	Vector2D coords = {
 		.x = data->origin.x + path_from_origin.x - entity->rect.size.x / 2,
 		.y = data->origin.y + path_from_origin.y - entity->rect.size.y / 2
 	};
 
-	//Log("Platform", "coordinates = { %f | %f }", coords.x, coords.y);
 	return coords;
 }
 
