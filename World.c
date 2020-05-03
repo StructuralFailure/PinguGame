@@ -217,12 +217,12 @@ bool World_remove_entity(World* world, Entity* entity)
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
 		if (world->entities[i] == entity) {
 			/* inform other entities. */
-			for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
-				Entity* ent;
-				if (!ent || !ent->removing_other_entity) {
+			for (int inform_i = 0; inform_i < MAX_ENTITY_COUNT; ++inform_i) {
+				Entity* inform_ent = world->entities[inform_i];
+				if (!inform_ent || entity == inform_ent || !inform_ent->removing_other_entity) {
 					continue;
 				}
-				ent->removing_other_entity(ent, entity);
+				inform_ent->removing_other_entity(inform_ent, entity);
 			}
 
 			if (entity->destroy) {
@@ -717,5 +717,4 @@ void World_destroy(World* world)
 	free(world);
 
 	Log("World", "destroyed.");
-
 }

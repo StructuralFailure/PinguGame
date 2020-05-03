@@ -71,6 +71,15 @@ void Rectangle_print(Rectangle* rect)
 }
 
 
+Vector2D Rectangle_center(Rectangle* rect)
+{
+	return (Vector2D) {
+		.x = rect->position.x + rect->size.x / 2,
+		.y = rect->position.y + rect->size.y / 2
+	};
+}
+
+
 #if 0
 CollidedWith Rectangle_collision_face(Rectangle* rect_moving, Rectangle* rect_static, Vector2D* delta_pos)
 {
@@ -169,13 +178,29 @@ Vector2D Vector2D_sum(Vector2D vec_sum_a, Vector2D vec_sum_b)
 }
 
 
-Vector2D Vector2D_sum_array(Vector2D* vecs, int count) {
+Vector2D Vector2D_sum_array(Vector2D* vecs, int count)
+{
 	Vector2D result = { 0 };
 	for (int i = 0; i < count; ++i) {
 		result.x += vecs[i].x;
 		result.y += vecs[i].y;
 	}
 	return result;
+}
+
+
+Vector2D Vector2D_product(Vector2D vec, float mult)
+{
+	return (Vector2D) {
+		vec.x * mult,
+		vec.y * mult
+	};
+}
+
+
+float Vector2D_dot_product(Vector2D vec_a, Vector2D vec_b)
+{
+	return (vec_a.x * vec_b.x) + (vec_a.y * vec_b.y);
 }
 
 
@@ -241,4 +266,18 @@ Vector2D Vector_normal_clockwise(Vector2D vec)
 Vector2D Vector_normal_counterclockwise(Vector2D vec)
 {
 	return (Vector2D) { vec.y, -vec.x };
+}
+
+
+float Vector2D_cos(Vector2D vec_a, Vector2D vec_b)
+{
+	float length_a = Vector2D_length(vec_a);
+	float length_b = Vector2D_length(vec_b);
+	return (Vector2D_dot_product(vec_a, vec_b) / (length_a * length_b));
+}
+
+
+bool Circle_overlap(Circle* circle_a, Circle* circle_b)
+{
+	return Vector2D_distance(circle_a->origin, circle_b->origin) < circle_a->radius + circle_b->radius;
 }

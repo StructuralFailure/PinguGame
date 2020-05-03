@@ -16,6 +16,7 @@ typedef enum EntitySnailStickingDirection {
 typedef enum EntitySnailState {
     ESS_ROLLING,
     ESS_FALLING,
+    ESS_IN_SHELL,
     ESS_CRAWLING,
     __ESS_COUNT
 } EntitySnailState;
@@ -23,6 +24,7 @@ typedef enum EntitySnailState {
 typedef struct EntitySnailData {
     EntitySnailStickingDirection sticking; /* which side OF THE SNAIL is sticking to the block, NOT which face of the block it's sticking to */
     bool crawling_clockwise; /* refers to inner turns, will be reversed when there is an outer turn. */
+    Vector2D shell_velocity;
     float falling_speed;
     EntitySnailState state;
     EntitySnailState previous_state;

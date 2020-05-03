@@ -27,15 +27,17 @@ typedef EntitySnailState State;
 static SDL_Texture* tex_snail;
 
 
-void update_do_inner_turn(Entity* entity);
-void update_do_outer_turn(Entity* entity);
-
 void handle_state_crawling(Entity* entity);
 void handle_state_falling(Entity* entity);
 void handle_state_edges(Entity* entity);
 
+void handle_shell_collision(Entity* entity, Entity* entity_other);
+
 StickingDirection mirror_sticking_direction(StickingDirection input);
 bool has_line_of_sight(Entity* entity);
+
+void do_inner_turn(Entity* entity);
+void do_outer_turn(Entity* entity);
 void reverse_crawling_direction(Entity* entity);
 
 
@@ -66,6 +68,7 @@ Entity* EntitySnail_create(void)
 	snail->draw = EntitySnail_draw;
 	snail->destroy = EntitySnail_destroy;
 	snail->message = EntitySnail_message;
+	snail->collide = EntitySnail_collide;
 	snail->added_other_entity = EntitySnail_added_other_entity;
 	snail->removing_other_entity = EntitySnail_removing_other_entity;
 
@@ -111,6 +114,91 @@ void EntitySnail_removing_other_entity(Entity* entity, Entity* entity_other)
 }
 
 
+void EntitySnail_collide(Entity* entity, Entity* entity_other)
+{
+	/* when a player hits a shell, he should be able to bounce it around. */
+	ENTITY_DATA_ASSERT(Snail);
+
+	if (entity_other->type != ET_PLAYER) {
+		return;
+	}
+
+	if (data->state == ESS_IN_SHELL) {
+		handle_shell_collision(entity, entity_other);
+	}
+
+	/* 2:28:00
+	 * 2:47:46
+	 */
+}
+
+
+void handle_shell_collision(Entity* entity, Entity* entity_other)
+{
+	Circle ent_circle = {
+			.radius = entity->rect.size.x / 2,
+			.origin = Rectangle_center(&(entity->rect))
+	};
+
+	Circle ent_other_circle = {
+			.radius = entity_other->rect.size.x / 2,
+			.origin = Rectangle_center(&(entity_other->rect))
+	};
+
+
+	/* collide event works based on rectangle, but we only want to act when there is a
+ 	 * collision of the circles enclosed by the rectangles.
+ 	 */
+	if (!Circle_overlap(&ent_circle, &ent_other_circle)) {
+		return;
+	}
+
+	/* we've established that the circles are overlapping, so we use
+	 * a do loop to start moving back until there is no
+	 * overlap any longer.
+	 */
+	Vector2D ent_prev_center = Rectangle_center(&(entity_other->previous_rect));
+	Vector2D ent_dp = Vector2D_difference(ent_circle.origin, ent_prev_center);
+	Vector2D ent_dp_unit = Vector2D_create_with_length(ent_dp, 1);
+
+	/* TODO: change the way we move the circle out to be more efficient.
+	 *       there is a formula for it, but i'm too lazy to look it up
+	 *       or figure it out myself. just using the rectangle method for now.
+	 */
+	do {
+		entity->rect.position.x -= ent_dp_unit.x;
+		entity->rect.position.y -= ent_dp_unit.y;
+
+		/* moving a rectangle makes its center move by the same amount. */
+		ent_circle.origin.x -= ent_dp_unit.x;
+		ent_circle.origin.y -= ent_dp_unit.y;
+	} while (Circle_overlap(&ent_circle, &ent_other_circle));
+
+	/* now that we've moved  back outside, we can establish the angle of
+	 * the reflector vector that we'll use to bounce off entity_other.
+	 */
+
+	Vector2D reflector_normal = Vector2D_difference(ent_other_circle.origin, ent_circle.origin);
+
+	/* reflected→ = { [ -2 * ( reflector_normal→ ⋅ ent_dp→ ) ] * reflector_normal→ } + ent_dp→,
+	 */
+	Vector2D reflected =
+			Vector2D_sum(
+					ent_dp,
+					Vector2D_product(
+							reflector_normal,
+							-2 * Vector2D_dot_product(
+									reflector_normal,
+									ent_dp
+							)
+					)
+			);
+
+
+
+}
+
+
 void EntitySnail_update(Entity* entity)
 {
 	ENTITY_DATA_ASSERT(Snail);
@@ -152,10 +240,15 @@ void handle_state_edges(Entity* entity) {
 	} else if (data->previous_state == ESS_FALLING && data->state == ESS_CRAWLING) {
 		/* TODO: check whether we fit before growing. */
 
+		/* upon landing, snail should chase the player. */
+		float lo_center_x = data->locked_onto->rect.position.x + data->locked_onto->rect.size.x / 2;
+		float entity_center_x = entity->rect.position.x + entity->rect.size.x / 2;
+		data->crawling_clockwise = lo_center_x < entity_center_x;
+
 		if (data->crawling_clockwise) {
-			/* no need to move. */
-		} else {
 			entity->rect.position.x -= 7;
+		} else {
+			/* no need to move. */
 		}
 		entity->rect.size = (Vector2D) { 20, 16 };
 		entity->rect.position.y -= 1;
@@ -302,25 +395,25 @@ void handle_state_crawling(Entity* entity) {
 
 		/* check collision with imaginary wall */
 		Rectangle imaginary_wall = (Rectangle) {
-				.position = {
-						.x = cell_imaginary_wall.x * CM_CELL_WIDTH,
-						.y = cell_imaginary_wall.y * CM_CELL_HEIGHT
-				},
-				.size = {
-						.x = CM_CELL_WIDTH,
-						.y = CM_CELL_HEIGHT
-				}
+			.position = {
+				.x = cell_imaginary_wall.x * CM_CELL_WIDTH,
+				.y = cell_imaginary_wall.y * CM_CELL_HEIGHT
+			},
+			.size = {
+				.x = CM_CELL_WIDTH,
+				.y = CM_CELL_HEIGHT
+			}
 		};
 
-		/* crawling off the top of a semi-solid cell should result in fall. */
 		CollidedWith collided_with = World_move_until_collision_with_flags(
 			entity->world, &(entity->rect), &delta_pos, CC_RECTANGLE, &imaginary_wall
 		);
 
 		if (collided_with) {
-			bool fall_on_collision = false;
+			bool turn_around_on_collision = false;
 
 			if (data->sticking == ESSD_DOWNWARDS) {
+				/* crawling off the top of a semi-solid cell should result in turning around. */
 				RectangleInt cells_below = World_get_overlapping_cells(entity->world, &(entity->rect));
 				cells_below.position.y += 1;
 
@@ -328,17 +421,18 @@ void handle_state_crawling(Entity* entity) {
 					if (Level_get_cell_type_flags(
 							entity->world->level, cells_below.position.x + dx, cells_below.position.y
 						) & LCTF_SEMISOLID) {
-						fall_on_collision = true;
+						turn_around_on_collision = true;
 						break;
 					}
 				}
 			}
 
-			if (fall_on_collision) {
-				data->state = ESS_FALLING;
-				Log("fnasi", "fall_on_collision");
+			if (turn_around_on_collision) {
+				data->crawling_clockwise = !data->crawling_clockwise;
+				/*data->state = ESS_FALLING;
+				Log("fnasi", "fall_on_collision");*/
 			} else {
-				update_do_outer_turn(entity);
+				do_outer_turn(entity);
 			}
 		}
 	} else {
@@ -349,7 +443,7 @@ void handle_state_crawling(Entity* entity) {
 				entity->world, &(entity->rect), &delta_pos
 		);
 		if (collided_with) {
-			update_do_inner_turn(entity);
+			do_inner_turn(entity);
 		}
 	}
 
@@ -393,27 +487,14 @@ void EntitySnail_draw(Entity* entity, Viewport* viewport)
 	};
 
 	if (data->state == ESS_CRAWLING) {
-
 		bool flip_v = false;
 		bool flip_h = false;
 		bool use_vertical_tex = entity->rect.size.y > entity->rect.size.x;
 
-		/*flip_h =
-			(ESSD_RIGHTWARDS) || (ESSD_DOWNWARDS && data->crawling_clockwise) ||
-			(ESSD_UPWARDS && !data->crawling_clockwise);
-
-		flip_v =
-			(ESSD_RIGHTWARDS && !data->crawling_clockwise) || (ESSD_LEFTWARDS && data->crawling_clockwise) ||
-			(ESSD_UPWARDS);
-		 */
-
-
 		switch (data->sticking) {
 		case ESSD_RIGHTWARDS:
-			if (data->crawling_clockwise) {
-				flip_h = true;
-			} else {
-				flip_h = true;
+			flip_h = true;
+			if (!data->crawling_clockwise) {
 				flip_v = true;
 			}
 			break;
@@ -428,11 +509,9 @@ void EntitySnail_draw(Entity* entity, Viewport* viewport)
 			}
 			break;
 		case ESSD_UPWARDS:
-			if (data->crawling_clockwise) {
-				flip_v = true;
-			} else {
+			flip_v = true;
+			if (!data->crawling_clockwise) {
 				flip_h = true;
-				flip_v = true;
 			}
 		default:
 			;
@@ -442,7 +521,7 @@ void EntitySnail_draw(Entity* entity, Viewport* viewport)
 		frame_row = (2 * flip_v) + flip_h;
 		animation_frame = 2 - (entity->world->ticks / 10) % 3; /* TODO: fix moonwalk. */
 		frame_col += animation_frame;
-	} else {
+	} else /* falling animation */ {
 		frame_col = 6;
 		frame_row = !(data->crawling_clockwise);
 	}
@@ -482,11 +561,15 @@ void EntitySnail_add(Entity* entity)
 
 void EntitySnail_destroy(Entity* entity)
 {
+	Log("EntitySnail", "destroying.");
+
 	ENTITY_DATA(Snail);
 	if (data) {
 		free(data);
 	}
 	free(entity);
+
+	Log("EntitySnail", "destroyed.");
 }
 
 
@@ -525,7 +608,7 @@ Entity* EntitySnail_deserialize(char* input)
 }
 
 
-void update_do_inner_turn(Entity* entity) {
+void do_inner_turn(Entity* entity) {
 	ENTITY_DATA_ASSERT(Snail);
 
 	Log("EntitySnail", "update_do_inner_turn: turning.");
@@ -600,10 +683,10 @@ void update_do_inner_turn(Entity* entity) {
 }
 
 
-void update_do_outer_turn(Entity* entity) {
+void do_outer_turn(Entity* entity) {
 	ENTITY_DATA_ASSERT(Snail);
 
-	/* we can use update_do_inner_turn:
+	/* we can use do_inner_turn:
 	 * 1. mirror snail's sticking direction and whether it's going clockwise.
 	 * 2. do inward turn,
 	 * 3. mirror snail's sticking direction and whether it's going clockwise again.
@@ -611,10 +694,9 @@ void update_do_outer_turn(Entity* entity) {
 
 	data->sticking = mirror_sticking_direction(data->sticking);
 	data->crawling_clockwise = !data->crawling_clockwise;
-	update_do_inner_turn(entity);
+	do_inner_turn(entity);
 	data->sticking = mirror_sticking_direction(data->sticking);
 	data->crawling_clockwise = !data->crawling_clockwise;
-
 }
 
 

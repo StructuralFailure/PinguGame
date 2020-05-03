@@ -55,8 +55,15 @@ typedef struct Rectangle2DInt {
 } RectangleInt;
 
 
-bool Rectangle_overlap(Rectangle* rect_a, Rectangle* rect_b);
-void Rectangle_print(Rectangle* rect);
+typedef struct Circle {
+	Vector2D origin;
+	float radius;
+} Circle;
+
+
+bool     Rectangle_overlap(Rectangle* rect_a, Rectangle* rect_b);
+Vector2D Rectangle_center(Rectangle* rect);
+void     Rectangle_print(Rectangle* rect);
 //CollidedWith Rectangle_collision_face(Rectangle* rect_moving, Rectangle* rect_static, Vector2D* delta_pos);
 
 bool        LineSegment_intersect(LineSegment* line_a, LineSegment* line_b);
@@ -66,12 +73,17 @@ float       LineSegment_length(LineSegment* ls);
 Vector2D Vector2D_difference(Vector2D vec_min, Vector2D vec_sub);
 Vector2D Vector2D_sum(Vector2D vec_sum_a, Vector2D vec_sum_b);
 Vector2D Vector2D_sum_array(Vector2D* vecs, int count);
+Vector2D Vector2D_product(Vector2D vec, float mult);
+float    Vector2D_dot_product(Vector2D vec_a, Vector2D vec_b);
 float    Vector2D_cross_product(Vector2D vec_a, Vector2D vec_b);
 Vector2D Vector2D_create_with_length(Vector2D vec, float length);
 float    Vector2D_length(Vector2D vec);
 float    Vector2D_distance(Vector2D vec_a, Vector2D vec_b);
 Vector2D Vector2D_normal_clockwise(Vector2D vec);
 Vector2D Vector2D_normal_counterclockwise(Vector2D vec);
+float    Vector2D_cos(Vector2D vec_a, Vector2D vec_b);
+
+bool     Circle_overlap(Circle* circle_a, Circle* circle_b);
 
 Vector2D Direction_unit_vector(Direction);
 
