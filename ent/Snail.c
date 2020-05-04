@@ -19,6 +19,7 @@
 
 #define GRAVITY 0.2f
 #define MAX_FALLING_SPEED 3.0f
+#define KICKING_COOLDOWN 20
 
 typedef EntitySnailStickingDirection StickingDirection;
 typedef EntitySnailState State;
@@ -83,6 +84,7 @@ Entity* EntitySnail_create(void)
 	data->state = data->previous_state = ESS_CRAWLING; /* start off kickable for testing purposes. */
 	data->shell_velocity = (Vector2D) { 0, 0 };
 	data->falling_speed = 0;
+	data->kicking_cooldown = 0;
 	snail->data = data;
 
 	Log("EntitySnail_create", "created.");
@@ -138,7 +140,12 @@ void EntitySnail_collide(Entity* entity, Entity* entity_other)
 
 void handle_collision_kickable(Entity* entity, Entity* player)
 {
-	ENTITY_DATA_ASSERT(Snail)
+	ENTITY_DATA_ASSERT(Snail);
+
+	if (data->kicking_cooldown > 0) {
+		return;
+	}
+
 	Entity* shell = entity;
 
 	Circle shell_circle = {
@@ -170,7 +177,7 @@ void handle_collision_kickable(Entity* entity, Entity* player)
 
 	Vector2D shell_delta_pos = Vector2D_difference(shell_circle.origin, shell_prev_center);
 	Vector2D shell_delta_pos_trans = Vector2D_difference(shell_delta_pos, player_delta_pos);
-	Vector2D shell_delta_pos_trans_unit = Vector2D_create_with_length(shell_delta_pos_trans, 1);
+	Vector2D shell_delta_pos_trans_unit_rev = Vector2D_create_with_length(shell_delta_pos_trans, -1);
 
 	/* TODO: change the way we move the circle out to be more efficient.
 	 *       there is a formula for it, but i'm too lazy to look it up
@@ -179,13 +186,16 @@ void handle_collision_kickable(Entity* entity, Entity* player)
 	float dist_moved_back = 0;
 	float shell_delta_pos_length = Vector2D_length(shell_delta_pos);
 	do {
-		entity->rect.position.x -= shell_delta_pos_trans_unit.x;
-		entity->rect.position.y -= shell_delta_pos_trans_unit.y;
+		World_move_until_collision(entity->world, &(entity->rect), &shell_delta_pos_trans_unit_rev);
+
+		/*entity->rect.position.x -= shell_delta_pos_trans_unit_rev.x;
+		entity->rect.position.y -= shell_delta_pos_trans_unit_rev.y;
 
 		/* moving a rectangle makes its center move by the same amount. */
-		shell_circle.origin.x -= shell_delta_pos_trans_unit.x;
-		shell_circle.origin.y -= shell_delta_pos_trans_unit.y;
+		/*shell_circle.origin.x -= shell_delta_pos_trans_unit.x;
+		shell_circle.origin.y -= shell_delta_pos_trans_unit.y;*/
 
+		shell_circle.origin = Rectangle_center(&(entity->rect));
 		dist_moved_back += 1.0f;
 	} while ((dist_moved_back < shell_delta_pos_length) &&
 	         Circle_overlap(&shell_circle, &player_circle));
@@ -214,7 +224,8 @@ void handle_collision_kickable(Entity* entity, Entity* player)
 			)
 		);
 
-	data->shell_velocity = (Vector2D) { reflected.x, reflected.y - 1.5f };
+	data->shell_velocity = (Vector2D) { reflected.x * 1.2f, reflected.y - 2.0f };
+	data->kicking_cooldown = KICKING_COOLDOWN;
 }
 
 
@@ -472,7 +483,7 @@ void handle_state_crawling(Entity* entity) {
 
 	if (has_line_of_sight(entity)) {
 		Log("EntitySnail_update", "i see the player!");
-		data->state = ESS_FALLING;
+		data->state = ESS_KICKABLE;
 	}
 }
 
@@ -501,21 +512,27 @@ void handle_state_kickable(Entity* entity)
 {
 	ENTITY_DATA_ASSERT(Snail);
 
+	if (data->kicking_cooldown > 0) {
+		--data->kicking_cooldown;
+	}
+
 	/* do bouncing and stuff. */
-	CollidedWith collided_with = World_move_until_collision(entity->world, &(entity->rect), &(data->shell_velocity));
+	CollidedWith collided_with = World_move(entity->world, entity, &(data->shell_velocity));
 
 	/* bounce off walls, but lose a bit of speed. */
 	switch (collided_with) {
 	case CW_TOP:
 	case CW_BOTTOM:
 		data->shell_velocity.y *= -0.5f;
+		data->shell_velocity.x *= 0.8f;
 		break;
 	case CW_LEFT:
 	case CW_RIGHT:
-		data->shell_velocity.x *= -0.5f;
+		data->shell_velocity.x *= -0.75f;
 		break;
 	default:;
 	}
+	data->shell_velocity.x *= 0.99f;
 	data->shell_velocity.y = min(data->shell_velocity.y + GRAVITY, MAX_FALLING_SPEED);
 }
 
@@ -603,8 +620,6 @@ void EntitySnail_add(Entity* entity)
 			break;
 		}
 	}
-
-	data->state = ESS_KICKABLE;
 }
 
 
@@ -797,17 +812,17 @@ void reverse_crawling_direction(Entity* entity)
 StickingDirection mirror_sticking_direction(StickingDirection input)
 {
 	switch (input) {
-		case ESSD_RIGHTWARDS:
-			return ESSD_LEFTWARDS;
-		case ESSD_DOWNWARDS:
-			return ESSD_UPWARDS;
-		case ESSD_LEFTWARDS:
-			return ESSD_RIGHTWARDS;
-		case ESSD_UPWARDS:
-			return ESSD_DOWNWARDS;
-		default:
-			Log_error("EntitySnail", "cannot mirror sticking direction. invalid input.");
-			return 0;
+	case ESSD_RIGHTWARDS:
+		return ESSD_LEFTWARDS;
+	case ESSD_DOWNWARDS:
+		return ESSD_UPWARDS;
+	case ESSD_LEFTWARDS:
+		return ESSD_RIGHTWARDS;
+	case ESSD_UPWARDS:
+		return ESSD_DOWNWARDS;
+	default:
+		Log_error("EntitySnail", "cannot mirror sticking direction. invalid input.");
+		return 0;
 	}
 }
 

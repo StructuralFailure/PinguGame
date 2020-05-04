@@ -26,6 +26,7 @@ typedef struct EntitySnailData {
     bool crawling_clockwise; /* refers to inner turns, will be reversed when there is an outer turn. */
     Vector2D shell_velocity;
     float falling_speed;
+    int kicking_cooldown;
     EntitySnailState state;
     EntitySnailState previous_state;
 

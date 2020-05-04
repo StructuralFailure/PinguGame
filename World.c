@@ -472,6 +472,8 @@ CollidedWith World_move_until_collision_with_flags(World* world, Rectangle* rect
 			Rectangle_print(rect);*/
 			valid_top_collision = true;
 		} else {
+
+
 			int calc_x = rect_last_collision.position.x / CM_CELL_WIDTH;
 			int calc_y = rect_last_collision.position.y / CM_CELL_HEIGHT - 1;
 			valid_top_collision = !Level_is_solid(world->level, calc_x, calc_y);
