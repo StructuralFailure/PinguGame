@@ -6,7 +6,7 @@
 #include "Util.h"
 #include "Snail.h"
 
-#define SPEED  0.6
+#define SPEED  0.6f
 #define WIDTH  20
 #define HEIGHT 16
 
@@ -17,8 +17,8 @@
 #define SHELL_WIDTH  13
 #define SHELL_HEIGHT 15
 
-#define GRAVITY 0.2
-#define MAX_FALLING_SPEED 3
+#define GRAVITY 0.2f
+#define MAX_FALLING_SPEED 3.0f
 
 typedef EntitySnailStickingDirection StickingDirection;
 typedef EntitySnailState State;
@@ -29,9 +29,10 @@ static SDL_Texture* tex_snail;
 
 void handle_state_crawling(Entity* entity);
 void handle_state_falling(Entity* entity);
+void handle_state_kickable(Entity* entity);
 void handle_state_edges(Entity* entity);
 
-void handle_shell_collision(Entity* entity, Entity* entity_other);
+void handle_collision_kickable(Entity* entity, Entity* entity_other);
 
 StickingDirection mirror_sticking_direction(StickingDirection input);
 bool has_line_of_sight(Entity* entity);
@@ -79,7 +80,9 @@ Entity* EntitySnail_create(void)
 
 	data->sticking = ESSD_UPWARDS;
 	data->crawling_clockwise = false;
-	data->state = data->previous_state = ESS_CRAWLING;
+	data->state = data->previous_state = ESS_CRAWLING; /* start off kickable for testing purposes. */
+	data->shell_velocity = (Vector2D) { 0, 0 };
+	data->falling_speed = 0;
 	snail->data = data;
 
 	Log("EntitySnail_create", "created.");
@@ -123,8 +126,8 @@ void EntitySnail_collide(Entity* entity, Entity* entity_other)
 		return;
 	}
 
-	if (data->state == ESS_IN_SHELL) {
-		handle_shell_collision(entity, entity_other);
+	if (data->state == ESS_KICKABLE) {
+		handle_collision_kickable(entity, entity_other);
 	}
 
 	/* 2:28:00
@@ -133,23 +136,26 @@ void EntitySnail_collide(Entity* entity, Entity* entity_other)
 }
 
 
-void handle_shell_collision(Entity* entity, Entity* entity_other)
+void handle_collision_kickable(Entity* entity, Entity* player)
 {
-	Circle ent_circle = {
-			.radius = entity->rect.size.x / 2,
-			.origin = Rectangle_center(&(entity->rect))
+	ENTITY_DATA_ASSERT(Snail)
+	Entity* shell = entity;
+
+	Circle shell_circle = {
+			.radius = shell->rect.size.x / 2,
+			.origin = Rectangle_center(&(shell->rect))
 	};
 
-	Circle ent_other_circle = {
-			.radius = entity_other->rect.size.x / 2,
-			.origin = Rectangle_center(&(entity_other->rect))
+	Circle player_circle = {
+			.radius = player->rect.size.x / 2,
+			.origin = Rectangle_center(&(player->rect))
 	};
 
 
 	/* collide event works based on rectangle, but we only want to act when there is a
  	 * collision of the circles enclosed by the rectangles.
  	 */
-	if (!Circle_overlap(&ent_circle, &ent_other_circle)) {
+	if (!Circle_overlap(&shell_circle, &player_circle)) {
 		return;
 	}
 
@@ -157,45 +163,58 @@ void handle_shell_collision(Entity* entity, Entity* entity_other)
 	 * a do loop to start moving back until there is no
 	 * overlap any longer.
 	 */
-	Vector2D ent_prev_center = Rectangle_center(&(entity_other->previous_rect));
-	Vector2D ent_dp = Vector2D_difference(ent_circle.origin, ent_prev_center);
-	Vector2D ent_dp_unit = Vector2D_create_with_length(ent_dp, 1);
+	Vector2D player_prev_center = Rectangle_center(&(player->previous_rect));
+	Vector2D shell_prev_center = Rectangle_center(&(shell->previous_rect));
+
+	Vector2D player_delta_pos = Vector2D_difference(player_circle.origin, player_prev_center);
+
+	Vector2D shell_delta_pos = Vector2D_difference(shell_circle.origin, shell_prev_center);
+	Vector2D shell_delta_pos_trans = Vector2D_difference(shell_delta_pos, player_delta_pos);
+	Vector2D shell_delta_pos_trans_unit = Vector2D_create_with_length(shell_delta_pos_trans, 1);
 
 	/* TODO: change the way we move the circle out to be more efficient.
 	 *       there is a formula for it, but i'm too lazy to look it up
 	 *       or figure it out myself. just using the rectangle method for now.
 	 */
+	float dist_moved_back = 0;
+	float shell_delta_pos_length = Vector2D_length(shell_delta_pos);
 	do {
-		entity->rect.position.x -= ent_dp_unit.x;
-		entity->rect.position.y -= ent_dp_unit.y;
+		entity->rect.position.x -= shell_delta_pos_trans_unit.x;
+		entity->rect.position.y -= shell_delta_pos_trans_unit.y;
 
 		/* moving a rectangle makes its center move by the same amount. */
-		ent_circle.origin.x -= ent_dp_unit.x;
-		ent_circle.origin.y -= ent_dp_unit.y;
-	} while (Circle_overlap(&ent_circle, &ent_other_circle));
+		shell_circle.origin.x -= shell_delta_pos_trans_unit.x;
+		shell_circle.origin.y -= shell_delta_pos_trans_unit.y;
+
+		dist_moved_back += 1.0f;
+	} while ((dist_moved_back < shell_delta_pos_length) &&
+	         Circle_overlap(&shell_circle, &player_circle));
 
 	/* now that we've moved  back outside, we can establish the angle of
 	 * the reflector vector that we'll use to bounce off entity_other.
 	 */
+	Vector2D reflector_normal_unit = Vector2D_create_with_length(
+		Vector2D_difference(shell_circle.origin, player_circle.origin),
+		1
+	);
 
-	Vector2D reflector_normal = Vector2D_difference(ent_other_circle.origin, ent_circle.origin);
+	/* assume the player is stationary. transfer player's velocity in the opposite direction to achieve this. */
 
-	/* reflected→ = { [ -2 * ( reflector_normal→ ⋅ ent_dp→ ) ] * reflector_normal→ } + ent_dp→,
-	 */
+
+	/* reflected→ = { [ -2 * ( reflector_normal→ ⋅ ent_dp→ ) ] * reflector_normal→ } + ent_dp→ */
 	Vector2D reflected =
-			Vector2D_sum(
-					ent_dp,
-					Vector2D_product(
-							reflector_normal,
-							-2 * Vector2D_dot_product(
-									reflector_normal,
-									ent_dp
-							)
-					)
-			);
+		Vector2D_sum(
+			shell_delta_pos_trans,
+			Vector2D_product(
+				reflector_normal_unit,
+			-2 * Vector2D_dot_product(
+					reflector_normal_unit,
+					shell_delta_pos_trans
+				)
+			)
+		);
 
-
-
+	data->shell_velocity = (Vector2D) { reflected.x, reflected.y - 1.5f };
 }
 
 
@@ -211,6 +230,9 @@ void EntitySnail_update(Entity* entity)
 		break;
 	case ESS_FALLING:
 		handle_state_falling(entity);
+		break;
+	case ESS_KICKABLE:
+		handle_state_kickable(entity);
 		break;
 	default:
 		;
@@ -229,7 +251,8 @@ void handle_state_edges(Entity* entity) {
 	ENTITY_DATA_ASSERT(Snail);
 
 	/* mainly adjusting entity->rect. */
-	if (data->previous_state == ESS_CRAWLING && data->state == ESS_FALLING) {
+	if ((data->previous_state == ESS_CRAWLING && data->state == ESS_FALLING)
+	 || (data->previous_state == ESS_CRAWLING && data->state == ESS_KICKABLE)) {
 		/* we're becoming smaller, so no need to check whether we fit. */
 		if (data->crawling_clockwise) {
 			/* no need to move. */
@@ -454,7 +477,8 @@ void handle_state_crawling(Entity* entity) {
 }
 
 
-void handle_state_falling(Entity* entity) {
+void handle_state_falling(Entity* entity)
+{
 	ENTITY_DATA_ASSERT(Snail);
 
 	data->falling_speed = min(MAX_FALLING_SPEED, data->falling_speed + GRAVITY);
@@ -470,6 +494,29 @@ void handle_state_falling(Entity* entity) {
 		Log("handle_state_falling", "collided");
 		data->state = ESS_CRAWLING;
 	}
+}
+
+
+void handle_state_kickable(Entity* entity)
+{
+	ENTITY_DATA_ASSERT(Snail);
+
+	/* do bouncing and stuff. */
+	CollidedWith collided_with = World_move_until_collision(entity->world, &(entity->rect), &(data->shell_velocity));
+
+	/* bounce off walls, but lose a bit of speed. */
+	switch (collided_with) {
+	case CW_TOP:
+	case CW_BOTTOM:
+		data->shell_velocity.y *= -0.5f;
+		break;
+	case CW_LEFT:
+	case CW_RIGHT:
+		data->shell_velocity.x *= -0.5f;
+		break;
+	default:;
+	}
+	data->shell_velocity.y = min(data->shell_velocity.y + GRAVITY, MAX_FALLING_SPEED);
 }
 
 
@@ -521,7 +568,7 @@ void EntitySnail_draw(Entity* entity, Viewport* viewport)
 		frame_row = (2 * flip_v) + flip_h;
 		animation_frame = 2 - (entity->world->ticks / 10) % 3; /* TODO: fix moonwalk. */
 		frame_col += animation_frame;
-	} else /* falling animation */ {
+	} else /* animation for falling and kickable */ {
 		frame_col = 6;
 		frame_row = !(data->crawling_clockwise);
 	}
@@ -556,6 +603,8 @@ void EntitySnail_add(Entity* entity)
 			break;
 		}
 	}
+
+	data->state = ESS_KICKABLE;
 }
 
 

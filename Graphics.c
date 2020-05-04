@@ -74,8 +74,8 @@ void Rectangle_print(Rectangle* rect)
 Vector2D Rectangle_center(Rectangle* rect)
 {
 	return (Vector2D) {
-		.x = rect->position.x + rect->size.x / 2,
-		.y = rect->position.y + rect->size.y / 2
+		.x = rect->position.x + (rect->size.x / 2),
+		.y = rect->position.y + (rect->size.y / 2)
 	};
 }
 

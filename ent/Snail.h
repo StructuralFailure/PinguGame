@@ -16,7 +16,7 @@ typedef enum EntitySnailStickingDirection {
 typedef enum EntitySnailState {
     ESS_ROLLING,
     ESS_FALLING,
-    ESS_IN_SHELL,
+    ESS_KICKABLE,
     ESS_CRAWLING,
     __ESS_COUNT
 } EntitySnailState;
