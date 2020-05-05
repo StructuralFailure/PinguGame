@@ -56,6 +56,7 @@ struct Entity {
 
 
 Entity* Entity_create();
+void    Entity_resize(Entity*, Direction anchor);
 
 
 #endif

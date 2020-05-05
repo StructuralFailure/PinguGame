@@ -675,7 +675,7 @@ Entity* EntitySnail_deserialize(char* input)
 void do_inner_turn(Entity* entity) {
 	ENTITY_DATA_ASSERT(Snail);
 
-	Log("EntitySnail", "update_do_inner_turn: turning.");
+	//Log("EntitySnail", "update_do_inner_turn: turning.");
 
 	/* turn right if going clockwise, turn left otherwise. */
 	Rectangle rect_old = entity->rect;
@@ -739,7 +739,7 @@ void do_inner_turn(Entity* entity) {
 	Vector2D delta_pos = { 0, 0 };
 	CollidedWith collided_with = World_move_until_collision(entity->world, &(entity->rect), &delta_pos);
 	if (collided_with == CW_STUCK) {
-		Log("EntitySnail", "update_do_inner_turn: stuck.");
+		//Log("EntitySnail", "update_do_inner_turn: stuck.");
 		entity->rect = rect_old;
 		data->sticking = sticking_old;
 		data->crawling_clockwise = !data->crawling_clockwise;

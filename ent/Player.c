@@ -21,10 +21,15 @@
 #define GRAVITY           0.15 
 #define MAX_FALLING_SPEED 3
 
+#define TEX_FRAME_WIDTH  16
+#define TEX_FRAME_HEIGHT 20
+#define TEX_WALKING_FRAME_COUNT 6
 
-char text_score[32];
-SDL_Texture* tex_player_left;
-SDL_Texture* tex_player_right;
+
+static char text_score[32];
+static SDL_Texture* tex_player_left;
+static SDL_Texture* tex_player_right;
+static SDL_Texture* tex_player;
 
 
 void handle_item_block_collision(Entity*);
@@ -38,6 +43,9 @@ Entity* EntityPlayer_create()
 	}
 	if (!tex_player_right) {
 		tex_player_right = SDLHelper_load_texture("assets/gfx/player_right.bmp");
+	}
+	if (!tex_player) {
+		tex_player = SDLHelper_load_texture("assets/gfx/player.bmp");
 	}
 
 	Entity* player = Entity_create();
@@ -60,7 +68,7 @@ Entity* EntityPlayer_create()
 		},
 		.size = {
 			.x = 16,
-			.y = 16
+			.y = 20
 		}
 	};
 
@@ -121,28 +129,33 @@ void EntityPlayer_update(Entity* entity)
 	if (data->state != EPS_CLIMBING) {
 		/* TODO: put this into a separate function to maintain readability. */
 
+
+
 		/* player is not climbing.
 		 * let him move around the map freely and perform collision detectio etc.
 		 */
 
 		/* gravity */
-		data->velocity.y = min(data->velocity.y + 0.15, 4.5);
+		data->velocity.y = min(data->velocity.y + 0.15f, 4.5f);
 
 		bool moving_horizontally = false;
 		if (keystate[SDL_SCANCODE_LEFT]) {
-			data->velocity.x = max(data->velocity.x - 0.3, -2.5);
+			data->velocity.x = max(data->velocity.x - 0.3f, -2.5f);
 			if (data->velocity.x < 0) {
 				data->facing = EPF_LEFT;
 			}
 			moving_horizontally = true;
 		} 
 		if (keystate[SDL_SCANCODE_RIGHT]) {
-			data->velocity.x = min(data->velocity.x + 0.3, 2.5);
+			data->velocity.x = min(data->velocity.x + 0.3f, 2.5f);
 			if (data->velocity.x > 0) {
 				data->facing = EPF_RIGHT;
 			}
 			moving_horizontally = true;
 		}
+
+		/* hackkkk. */
+		data->animation_frame_satisfied += abs_float(data->velocity.x) / 15.0f;
 
 		/* prevent player from holding down the up key to perform multiple jumps. */
 		bool key_up_pressed_fresh = keystate[SDL_SCANCODE_UP] && !(data->key_up_pressed_prev);
@@ -195,9 +208,9 @@ void EntityPlayer_update(Entity* entity)
 		if (!moving_horizontally) {
 			float previous_velocity_x = data->velocity.x;
 			if (data->velocity.x > 0) {
-				data->velocity.x = max(0, data->velocity.x - 0.4);
+				data->velocity.x = max(0, data->velocity.x - 0.4f);
 			} else if (data->velocity.x < 0) {
-				data->velocity.x = min(0, data->velocity.x + 0.4);
+				data->velocity.x = min(0, data->velocity.x + 0.4f);
 			}
 			if (data->velocity.x == 0 && data->velocity.x != previous_velocity_x) {
 				float delta_x_rounded = round(entity->rect.position.x) - entity->rect.position.x;
@@ -263,7 +276,6 @@ void EntityPlayer_update(Entity* entity)
 	}
 
 	//Log("EntityPlayer", "update start: %f | %f", entity->rect.position.x, entity->rect.position.y);
-
 }
 
 
@@ -277,21 +289,43 @@ void EntityPlayer_draw(Entity* entity, Viewport* viewport)
 {
     ENTITY_DATA_ASSERT(Player);
 
-	Rectangle rect = entity->rect;
+	/*Rectangle rect = entity->rect;
 	SDL_Texture* tex;
 	if (data->facing == EPF_RIGHT) {
 		tex = tex_player_right;
 	} else {
 		tex = tex_player_left;
+	}*/
+
+	int frame_row;
+	int frame_col;
+
+	if (data->state == EPS_JUMPING || data->state == EPS_JUMPING_CHARGING) {
+		frame_row = 2;
+		frame_col = (data->facing == EPF_LEFT);
+	} else {
+		if (data->animation_frame_satisfied >= 1.0) {
+			data->animation_frame_satisfied = 0;
+			data->animation_frame = (data->animation_frame + 1) % TEX_WALKING_FRAME_COUNT;
+			//Log("EntityPlayer_draw", "frame satisfied, new frame: %d", data->animation_frame);
+		}
+		frame_row = (data->facing == EPF_LEFT);
+		frame_col = data->animation_frame;
 	}
 
-
-	Viewport_draw_texture(viewport, NULL, &rect, tex);
+	Rectangle tex_rect = {
+			.position = {
+					.x = frame_col * TEX_FRAME_WIDTH,
+					.y = frame_row * TEX_FRAME_HEIGHT
+			},
+			.size = entity->rect.size
+	};
+	Viewport_draw_texture(viewport, &tex_rect, &(entity->rect), tex_player);
 
 	/* change score text to display current position. */
 	snprintf(
 		data->entity_text_text, TEXT_SCORE_SIZE, "%03d %03d %d",
-		(int)rect.position.x, (int)rect.position.y, data->state
+		(int)(entity->rect.position.x), (int)(entity->rect.position.y), data->state
 	);
 }
 

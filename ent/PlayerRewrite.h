@@ -1,21 +1,25 @@
-#ifndef H_ENT_PLAYER
-#define H_ENT_PLAYER
+//
+// Created by fabian on 05.05.20.
+//
 
-#include "Text.h"
-#include "../Entity.h"
-#include "../Viewport.h"
-#include "../Graphics.h"
+#ifndef ENTITY_PLAYER_H
+#define ENTITY_PLAYER_H
 
+
+#include <stdbool.h>
+#include "Graphics.h"
+#include "Entity.h"
 
 #define TEXT_SCORE_SIZE 32
 
 
 typedef enum EntityPlayerState {
-	EPS_DEFAULT,
-	EPS_JUMPING_CHARGING, /* longer presses of up lead to higher jumps */
+	EPS_WALKING,
 	EPS_JUMPING,
 	EPS_FALLING,
-	EPS_CLIMBING,
+	EPS_WALL_SLIDING,
+	EPS_SLEDDING,
+	EPS_CLIMBING
 } EntityPlayerState;
 
 
@@ -27,18 +31,16 @@ typedef enum EntityPlayerFacing {
 
 typedef struct EntityPlayerData {
 	EntityPlayerState state;
-	int powerup_level;
-	int health;
+	EntityPlayerState previous_state;
+
+	Vector2D starting_pos;
 	Vector2D velocity;
 	EntityPlayerFacing facing;
+
 	int jump_charge_counter;
-	Vector2D starting_pos;
 
 	double animation_frame_satisfied;
 	int animation_frame;
-
-	Entity* entity_text;
-	char entity_text_text[TEXT_SCORE_SIZE];
 
 	bool key_up_pressed_prev;
 } EntityPlayerData;
@@ -56,6 +58,7 @@ void* EntityPlayer_message(Entity* entity, Entity* sender, EntityMessageType mes
 /* saving and loading */
 bool EntityPlayer_serialize(Entity* entity, char* output);
 Entity* EntityPlayer_deserialize(char* input);
+
 
 
 #endif

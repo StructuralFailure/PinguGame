@@ -8,14 +8,13 @@
 #include "Forward.h"
 
 
-#define VP_DEFAULT_WIDTH  320
+#define VP_DEFAULT_WIDTH  512
 #define VP_DEFAULT_HEIGHT 320
-#define VP_DEFAULT_CAMDIST_X 200
+#define VP_DEFAULT_CAMDIST_X 288
 #define VP_DEFAULT_CAMDIST_Y 160
 #define VP_DEFAULT_CAMSPEED_X 3.5
 #define VP_DEFAULT_CAMSPEED_Y 3.5
 
-/* TODO: add support for vertical viewports */
 
 typedef struct Viewport {
 	World* world;
