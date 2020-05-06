@@ -11,6 +11,7 @@
 #include "SDLHelper.h"
 #include "Viewport.h"
 #include "World.h"
+#include "IO.h"
 
 
 void loop(Game* game);
@@ -20,13 +21,15 @@ Game* Game_create()
 {
 	Log("Game", "creating.");
 
+	IO_init();
+
 	Game* game = calloc(1, sizeof(Game));
 	if (!game) {
 		Log_error("Game", "failed to allocate memory");
 		return NULL;
 	}
 
-	World* world = World_load_from_path("assets/lvl/level_1_1.lvl", true);
+	World* world = World_load_from_path("assets/lvl/wall_slide_test.lvl", true);
 	if (!world) {
 		free(game);
 		Log_error("Game", "failed to load world");
@@ -79,6 +82,7 @@ void loop(Game* game)
 		if (ms_delta >= ms_per_tick) {
 			ms_last_tick = ms_current;
 			if (game->world) {
+				IO_update_keys();
 				World_update(game->world);
 			}
 		}

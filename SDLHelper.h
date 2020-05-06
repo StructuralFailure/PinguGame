@@ -8,7 +8,7 @@
 #define WINDOW_TITLE  "CoronaGame"
 #define WINDOW_WIDTH  1536
 #define WINDOW_HEIGHT 960
-#define RENDER_SCALE_FACTOR 3.0
+#define RENDER_SCALE_FACTOR 4.0
 
 #define TEX_PLAYER "gfx/player.bmp"
 #define TEX_BLOCK  "gfx/block.bmp"

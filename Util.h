@@ -13,6 +13,8 @@
                 Log_error(__func__, "data == NULL");     \
                 return;                                        \
             }
+#define ENTITY_EVENT(ENTITY_TYPE, EVENT_NAME)                             \
+			entity->EVENT_NAME = Entity ## ENTITY_TYPE ## _ ## EVENT_NAME
 #define ENTITY_SETUP_CALLBACKS(TYPE, OBJ_POINTER) {            \
             OBJ_POINTER->add = Entity ## TYPE ## _add;         \
             OBJ_POINTER->update = Entity ## TYPE ## _update;   \

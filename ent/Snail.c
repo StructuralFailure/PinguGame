@@ -28,19 +28,19 @@ typedef EntitySnailState State;
 static SDL_Texture* tex_snail;
 
 
-void handle_state_crawling(Entity* entity);
-void handle_state_falling(Entity* entity);
-void handle_state_kickable(Entity* entity);
-void handle_state_edges(Entity* entity);
+static void handle_state_crawling(Entity* entity);
+static void handle_state_falling(Entity* entity);
+static void handle_state_kickable(Entity* entity);
+static void handle_state_edges(Entity* entity);
 
-void handle_collision_kickable(Entity* entity, Entity* entity_other);
+static void handle_collision_kickable(Entity* entity, Entity* entity_other);
 
-StickingDirection mirror_sticking_direction(StickingDirection input);
-bool has_line_of_sight(Entity* entity);
+static StickingDirection mirror_sticking_direction(StickingDirection input);
+static bool has_line_of_sight(Entity* entity);
 
-void do_inner_turn(Entity* entity);
-void do_outer_turn(Entity* entity);
-void reverse_crawling_direction(Entity* entity);
+static void do_inner_turn(Entity* entity);
+static void do_outer_turn(Entity* entity);
+static void reverse_crawling_direction(Entity* entity);
 
 
 Entity* EntitySnail_create(void)
@@ -187,13 +187,7 @@ void handle_collision_kickable(Entity* entity, Entity* player)
 	float shell_delta_pos_length = Vector2D_length(shell_delta_pos);
 	do {
 		World_move_until_collision(entity->world, &(entity->rect), &shell_delta_pos_trans_unit_rev);
-
-		/*entity->rect.position.x -= shell_delta_pos_trans_unit_rev.x;
-		entity->rect.position.y -= shell_delta_pos_trans_unit_rev.y;
-
 		/* moving a rectangle makes its center move by the same amount. */
-		/*shell_circle.origin.x -= shell_delta_pos_trans_unit.x;
-		shell_circle.origin.y -= shell_delta_pos_trans_unit.y;*/
 
 		shell_circle.origin = Rectangle_center(&(entity->rect));
 		dist_moved_back += 1.0f;
@@ -224,7 +218,7 @@ void handle_collision_kickable(Entity* entity, Entity* player)
 			)
 		);
 
-	data->shell_velocity = (Vector2D) { reflected.x * 1.2f, reflected.y - 2.0f };
+	data->shell_velocity = (Vector2D) { reflected.x * 1.4f, reflected.y -3.0f };
 	data->kicking_cooldown = KICKING_COOLDOWN;
 }
 
@@ -258,7 +252,7 @@ void EntitySnail_update(Entity* entity)
 }
 
 
-void handle_state_edges(Entity* entity) {
+static void handle_state_edges(Entity* entity) {
 	ENTITY_DATA_ASSERT(Snail);
 
 	/* mainly adjusting entity->rect. */
@@ -294,7 +288,7 @@ void handle_state_edges(Entity* entity) {
 }
 
 
-void handle_state_crawling(Entity* entity) {
+static void handle_state_crawling(Entity* entity) {
 	ENTITY_DATA_ASSERT(Snail);
 
 	/* movement */
@@ -488,7 +482,7 @@ void handle_state_crawling(Entity* entity) {
 }
 
 
-void handle_state_falling(Entity* entity)
+static void handle_state_falling(Entity* entity)
 {
 	ENTITY_DATA_ASSERT(Snail);
 
@@ -508,7 +502,7 @@ void handle_state_falling(Entity* entity)
 }
 
 
-void handle_state_kickable(Entity* entity)
+static void handle_state_kickable(Entity* entity)
 {
 	ENTITY_DATA_ASSERT(Snail);
 
@@ -672,7 +666,7 @@ Entity* EntitySnail_deserialize(char* input)
 }
 
 
-void do_inner_turn(Entity* entity) {
+static void do_inner_turn(Entity* entity) {
 	ENTITY_DATA_ASSERT(Snail);
 
 	//Log("EntitySnail", "update_do_inner_turn: turning.");
@@ -747,7 +741,7 @@ void do_inner_turn(Entity* entity) {
 }
 
 
-void do_outer_turn(Entity* entity) {
+static void do_outer_turn(Entity* entity) {
 	ENTITY_DATA_ASSERT(Snail);
 
 	/* we can use do_inner_turn:
@@ -764,7 +758,7 @@ void do_outer_turn(Entity* entity) {
 }
 
 
-void reverse_crawling_direction(Entity* entity)
+static void reverse_crawling_direction(Entity* entity)
 {
 	ENTITY_DATA(Snail);
 	if (!data) {
@@ -809,7 +803,7 @@ void reverse_crawling_direction(Entity* entity)
 }
 
 
-StickingDirection mirror_sticking_direction(StickingDirection input)
+static StickingDirection mirror_sticking_direction(StickingDirection input)
 {
 	switch (input) {
 	case ESSD_RIGHTWARDS:
@@ -827,7 +821,7 @@ StickingDirection mirror_sticking_direction(StickingDirection input)
 }
 
 
-bool has_line_of_sight(Entity* entity)
+static bool has_line_of_sight(Entity* entity)
 {
 	ENTITY_DATA(Snail);
 	if (!data || !data->locked_onto || data->sticking != ESSD_UPWARDS) {
