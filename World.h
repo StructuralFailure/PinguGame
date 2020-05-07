@@ -6,6 +6,7 @@
 #include "Viewport.h"
 #include "Forward.h"
 #include "Game.h"
+#include "cnt/WorldController.h"
 
 
 #define MAX_ENTITY_COUNT 32
@@ -37,6 +38,7 @@ typedef enum CollisionChecking {
 
 typedef struct World {
 	unsigned long ticks;
+	WorldController* controller;
 	Game* game;
 	Level* level;
 	Viewport* viewport;

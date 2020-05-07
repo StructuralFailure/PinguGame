@@ -5,12 +5,12 @@
 #ifndef ENTITY_PLAYER_H
 #define ENTITY_PLAYER_H
 
-
 #include <stdbool.h>
 #include "Graphics.h"
 #include "Entity.h"
 
-#define TEXT_SCORE_SIZE 32
+
+#define ENTITY_PLAYER_MAX_HEALTH 20
 
 
 typedef enum EntityPlayerState {
@@ -38,6 +38,8 @@ typedef struct EntityPlayerData {
 	Vector2D starting_pos;
 	Vector2D velocity;
 	EntityPlayerFacing facing;
+
+	int health;
 
 	int jump_charge_counter;
 

@@ -8,6 +8,7 @@
 #include "Entity.h"
 #include "Viewport.h"
 #include "ent/Entities.h"
+#include "cnt/WorldController.h"
 
 
 /* what in the ever-loving fuck? */
@@ -51,6 +52,12 @@ World* World_load_from_path(const char* file_path, bool load_entities)
 		goto fail_level;
 	}
 
+	WorldController* wc = WorldController_create();
+	if (!wc) {
+		Log_error("World", "failed to create world controller.");
+		goto fail_world_controller;
+	}
+
 	Viewport* viewport = Viewport_create();
 	if (!viewport) {
 		Log_error("World", "failed to create viewport.");
@@ -71,6 +78,7 @@ World* World_load_from_path(const char* file_path, bool load_entities)
 	
 	world->ticks = 0;
 	world->level = level;
+	world->controller = wc;
 	world->viewport = viewport;
 
 	/* initialize view port with some default values.
@@ -112,17 +120,19 @@ World* World_load_from_path(const char* file_path, bool load_entities)
 	return world;
 
 	/* error handling */
-fail_viewport:	Level_destroy(level);
-fail_level:	World_destroy(world);
-fail_world:	fclose(file);
-fail_file:	Log_error("World", "failed to load.");
-		return NULL;
+fail_viewport:         WorldController_destroy(wc);
+fail_world_controller: Level_destroy(level);
+fail_level:	           World_destroy(world);
+fail_world:            fclose(file);
+fail_file:             Log_error("World", "failed to load.");
+	                   return NULL;
 }
 
 
 void World_draw(World* world) 
 {
 	Viewport_draw(world->viewport);
+	WorldController_draw(world->controller, world->viewport);
 }
 
 void World_update(World* world) 
@@ -152,6 +162,7 @@ void World_update(World* world)
 		}
 	}
 
+    WorldController_finalize_update(world->controller);
 	Viewport_update(world->viewport);
 
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
@@ -187,7 +198,8 @@ bool World_add_entity(World* world, Entity* entity)
 			entity->add(entity);
 		}
 
-		/* inform other entities. */
+		/* inform other entities and world controller. */
+		WorldController_added_entity(world->controller, entity);
 		for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
 			Entity* ent = world->entities[i];
 			if (!ent || !ent->added_other_entity) {
@@ -715,6 +727,7 @@ void World_destroy(World* world)
 		}
 	}
 	Level_destroy(world->level);
+	WorldController_destroy(world->controller);
 	Viewport_destroy(world->viewport);
 	free(world);
 
