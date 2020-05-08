@@ -1,9 +1,10 @@
-#ifndef ENTITY_CONTROLLER_H
-#define ENTITY_CONTROLLER_H
+#ifndef WORLD_CONTROLLER_H
+#define WORLD_CONTROLLER_H
 
 
 #include <stdbool.h>
 
+#include "Controller.h"
 #include "../Entity.h"
 #include "../Forward.h"
 
@@ -11,24 +12,26 @@
 typedef struct World World;
 
 
-typedef struct WorldController {
+typedef struct WorldControllerData {
 	World* world;
 	int current_score;
 	int total_score;
 	int current_world_id;
+	int previous_player_health;
+	int healthbar_flash_counter;
 
 	Entity* player;
-} WorldController;
+} WorldControllerData;
 
 
-WorldController* WorldController_create(void);
-void WorldController_destroy(WorldController*);
+Controller* WorldController_create(void);
+void WorldController_destroy(Controller*);
 
-void WorldController_prepare_update(WorldController*);
-void WorldController_finalize_update(WorldController*);
-void WorldController_draw(WorldController*, Viewport*);
-void WorldController_added_entity(WorldController*, Entity*);
-void WorldController_removing_entity(WorldController*, Entity*);
+void WorldController_prepare_update(Controller*);
+void WorldController_finalize_update(Controller*);
+void WorldController_draw(Controller*, Viewport*);
+void WorldController_added_entity(Controller*, Entity*);
+void WorldController_removing_entity(Controller*, Entity*);
 
 
 #endif

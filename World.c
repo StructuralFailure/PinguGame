@@ -52,7 +52,7 @@ World* World_load_from_path(const char* file_path, bool load_entities)
 		goto fail_level;
 	}
 
-	WorldController* wc = WorldController_create();
+	Controller* wc = WorldController_create();
 	if (!wc) {
 		Log_error("World", "failed to create world controller.");
 		goto fail_world_controller;

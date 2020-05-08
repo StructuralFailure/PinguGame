@@ -10,7 +10,7 @@
 #include "Entity.h"
 
 
-#define ENTITY_PLAYER_MAX_HEALTH 20
+#define ENTITY_PLAYER_MAX_HEALTH 10
 
 
 typedef enum EntityPlayerState {
