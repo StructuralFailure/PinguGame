@@ -84,7 +84,7 @@ static void handle_state_edges(Entity*);
 static void handle_state_walking(Entity*);
 static void handle_state_jumping(Entity*);
 static void handle_state_falling(Entity*);
-static void handle_state_sledding(Entity*); /* TODO: implement Entity_resize with anchor. */
+static void handle_state_sledding(Entity*);
 static void handle_state_wall_sliding(Entity*);
 static void handle_state_ejecting(Entity*);
 static void handle_state_climbing(Entity*);
@@ -161,7 +161,10 @@ void EntityPlayer_destroy(Entity* entity)
 {
 	Log("EntityPlayer_destroy", "destroying.");
 
-	entity->world->viewport->locked_onto = NULL;
+	Viewport* viewport;
+	if ((viewport = entity->world->viewport)) {
+		viewport->locked_onto = NULL;
+	}
 	free(entity->data);
 	free(entity);
 
@@ -225,7 +228,7 @@ void EntityPlayer_update(Entity* entity)
 
 	void (*handle_state)(Entity*) = handle_state_functions[data->state];
 	if (!handle_state) {
-		Log_error("EntityPlayer_draw", "invalid state.");
+		Log_error("EntityPlayer_update", "invalid state.");
 		return;
 	}
 
@@ -238,7 +241,7 @@ Direction EntityPlayer_get_direction(Entity* entity)
 {
 	ENTITY_DATA(Player);
 	if (!data) {
-		Log_error("EntityPlayer_viewport_get_direction", "data == NULL");
+		Log_error("EntityPlayer_get_direction", "data == NULL");
 		return 0;
 	}
 
@@ -349,11 +352,9 @@ static void handle_state_walking(Entity* entity)
 	}
 
 	/* neither jump nor sled -> walk. */
-	{
-		CollidedWith collided_with = move_freely(entity, WALK_BRAKE_SPEED);
-		if (!(collided_with & CW_TOP)) {
-			SWITCH_STATES(EPS_FALLING);
-		}
+	CollidedWith collided_with = move_freely(entity, WALK_BRAKE_SPEED);
+	if (!(collided_with & CW_TOP)) {
+		SWITCH_STATES(EPS_FALLING);
 	}
 }
 
@@ -375,18 +376,16 @@ static void handle_state_jumping(Entity* entity)
 	float previous_y_speed = data->velocity.y;
 	CollidedWith collided_with = move_freely(entity, JUMP_BRAKE_SPEED);
 
-	/* don't brake as much when jumping. */
-
 	if (data->velocity.y > 0) {
 		SWITCH_STATES(EPS_FALLING);
 	}
 
 	if (collided_with & CW_BOTTOM) {
-		/* switch state to falling. */
-
+		/* head hit a wall -> switch state to falling. */
 		data->velocity.y = -JUMP_BOUNCE_YSPEED_FACTOR * previous_y_speed;
 		SWITCH_STATES(EPS_FALLING);
 	} else if (collided_with & CW_TOP) {
+		/* landed. */
 		SWITCH_STATES(EPS_WALKING);
 	}
 }
@@ -439,8 +438,8 @@ static void handle_state_sledding(Entity* entity) {
 	if (is_on_ground) {
 		data->velocity.x *= SLED_GROUND_BRAKE_FACTOR;
 	}
-	bool is_too_slow = abs_float(data->velocity.x) <= SLED_GET_UP_SPEED;
 
+	bool is_too_slow = abs_float(data->velocity.x) <= SLED_GET_UP_SPEED;
 	/* check whether to get up. */
 
 	if (is_too_slow || crashed_into_wall) {
@@ -510,8 +509,11 @@ static void handle_state_climbing(Entity* entity)
 	};
 
 	CollidedWith collided_with = World_move(entity->world, entity, &delta_pos);
-	if (collided_with & CW_TOP || !overlaps_ladder(entity)) {
+	if (collided_with & CW_TOP) {
 		SWITCH_STATES(EPS_WALKING);
+	}
+	if (!overlaps_ladder(entity)) {
+		SWITCH_STATES(EPS_FALLING);
 	}
 }
 

@@ -1,0 +1,27 @@
+How to detect if and where two rectangles collide when one of them is moving at a constant velocity.
+
+M  := moving rectangle
+Mc := center of moving rectangle
+
+S  := stationary rectangle
+Sc := center of stationary rectangle
+
+V  := velocity of moving rectangle
+
+D  := distance between moving and stationary rectangle
+
+           Mw                Dw
+ratio(M) = --    ratio(D) =  --
+           Mh                Dh
+
+top := ratio(M) > ratio(D)
+
+if (top) {
+    y = Mh / 2
+    calculate x
+} else {
+    x = Mw / 2
+    calculate y
+}
+
+distance(M + D*t, C) == CtoB

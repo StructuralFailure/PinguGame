@@ -12,16 +12,31 @@
 #define TICKS_PER_SECOND 60
 
 
+typedef enum GameState {
+	GS_MENU,
+	GS_STAGE,
+	GS_LEVEL_EDITOR,
+	GS_QUITTING,
+	GS_CREDITS,
+	GS_SETTINGS
+} GameState;
+
+
 struct Game {
+	GameState state;
 	World* world;
+	int current_stage;
+	bool stop;
 };
 
-/*               */
-/* basic methods */
-/*               */
+
 Game* Game_create();
-void Game_start(Game* game);
-void Game_destroy(Game* game);
+bool Game_start(Game*);
+void Game_stop(Game*);
+void Game_destroy(Game*);
+
+bool Game_load_menu(Game*);
+bool Game_load_stage(Game*, int index);
 
 
 #endif

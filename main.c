@@ -11,6 +11,7 @@
 #include "Log.h"
 #include "Game.h"
 #include "Entity.h"
+#include "EntityCollection.h"
 #include "ent/Entities.h"
 #include "World.h"
 
@@ -18,15 +19,11 @@
 #define LEVEL_PATH "assets/lvl/viewport_test"
 
 
-void test_game_creation(void);
-
-void test_world_loading(void);
-
-void test_line_segment_intersect(void);
-
-void test_vector_sum_array(void);
-
-void scanf_line_segment(LineSegment* ls);
+static void test_game_creation(void);
+static void test_world_loading(void);
+static void test_line_segment_intersect(void);
+static void test_vector_sum_array(void);
+static void scanf_line_segment(LineSegment* ls);
 
 
 int main(int argc, char** argv) 
@@ -47,7 +44,26 @@ int main(int argc, char** argv)
 	return 0;
 }
 
-void test_line_segment_intersect(void)
+
+static void test_entity_collection(void)
+{
+	EntityCollection ent_col;
+	if (!EntityCollection_init(&ent_col, 4)) {
+		Log_error("test_entity_collection", "failed to initialize entity collection.");
+		return;
+	}
+
+	EntityCollection_add(&ent_col, NULL);
+	EntityCollection_add(&ent_col, NULL);
+	EntityCollection_add(&ent_col, NULL);
+	Log("test_entity_collection", "size == %d | capacity == %d", ent_col.size, ent_col.capacity);
+	EntityCollection_add(&ent_col, NULL);
+	EntityCollection_add(&ent_col, NULL);
+	Log("test_entity_collection", "size == %d | capacity == %d", ent_col.size, ent_col.capacity);
+}
+
+
+static void test_line_segment_intersect(void)
 {
 	LineSegment ls_1;
 	LineSegment ls_2;
@@ -66,7 +82,8 @@ void test_line_segment_intersect(void)
 	}
 }
 
-void scanf_line_segment(LineSegment* ls) {
+
+static void scanf_line_segment(LineSegment* ls) {
 	printf("point_a.x := ");
 	scanf("%f", &(ls->point_a.x));
 	printf("point_a.y := ");
@@ -79,7 +96,7 @@ void scanf_line_segment(LineSegment* ls) {
 }
 
 
-void test_game_creation(void)
+static void test_game_creation(void)
 {
 	Game* game = Game_create();
 	Game_start(game);
@@ -87,7 +104,7 @@ void test_game_creation(void)
 }
 
 
-void test_vector_sum_array(void)
+static void test_vector_sum_array(void)
 {
 	Vector2D vecs[] = {
 		{ .x = 12, .y = 23 },
@@ -99,9 +116,9 @@ void test_vector_sum_array(void)
 }
 
 
-void test_world_loading(void) 
+static void test_world_loading(void)
 {
-	World* world = World_load_from_path("assets/lvl/entity_test.lvl", true);
+	World* world = World_load_from_path("assets/lvl/entity_test.lvl", NULL, true);
 	if (!world) {
 		Log_error("PinguGame", "failed to load world.");
 		return;

@@ -12,9 +12,32 @@
 #include "Viewport.h"
 #include "World.h"
 #include "IO.h"
+#include "Stage.h"
+#include "cnt/MenuController.h"
+#include "cnt/StageController.h"
 
 
 void loop(Game* game);
+
+
+static Stage level_editor_stage = {
+		0
+};
+
+static const Stage stages[] = {
+		[0] = {
+				.realm = SR_OVERWORLD,
+				.type = ST_DEFAULT,
+				.name = "Los geht's!",
+				.path = "assets/lvl/snail_test.lvl"
+		},
+		[1] = {
+				.realm = SR_OVERWORLD,
+				.type = ST_UNDERWATER,
+				.name = "Abkühlung",
+				.path = "assets/lvl/1-2.lvl"
+		}
+};
 
 
 Game* Game_create()
@@ -25,29 +48,25 @@ Game* Game_create()
 
 	Game* game = calloc(1, sizeof(Game));
 	if (!game) {
-		Log_error("Game", "failed to allocate memory");
+		Log_error("Game", "failed to allocate memory.");
 		return NULL;
 	}
 
-	World* world = World_load_from_path("assets/lvl/wall_slide_test.lvl", true);
-	if (!world) {
-		free(game);
-		Log_error("Game", "failed to load world");
-		return NULL;
-	}
-	/*world->viewport->locked_onto = world->entities[0];*/
-
-	game->world = world;
 	Log("Game", "created.");
 	return game;
 }
 
 
-void Game_start(Game* game) 
+bool Game_start(Game* game)
 {
-	Log("Game", "starting main game loop.");
+	Log("Game", "starting game loop.");
+
+	game->current_stage = 0;
+	//Game_load_stage(game, 0);
+	Game_load_menu(game);
 	loop(game);
-	Log("Game", "main game loop finished.");
+	Log("Game", "game loop finished.");
+	return true;
 }
 
 
@@ -59,6 +78,34 @@ void Game_destroy(Game* game)
 }
 
 
+bool Game_load_stage(Game* game, int index)
+{
+	if (game->world) {
+		World_destroy(game->world);
+	}
+
+	Controller* controller = StageController_create();
+	if (!controller) {
+		Log_error("Game_load_stage", "failed to create stage controller.");
+		return false;
+	}
+
+	game->world = World_load_from_path(stages[index].path, controller, true);
+	if (!game->world) {
+		Log_error("Game_load_stage", "failed to load stage at index %d.");
+		return false;
+	}
+
+	Log("Game_load_stage", "stage loaded.");
+	return true;
+}
+
+
+void Game_stop(Game* game) {
+	game->stop = true;
+}
+
+
 void loop(Game* game)
 {
 	double tick_rate = TICKS_PER_SECOND;
@@ -66,12 +113,11 @@ void loop(Game* game)
 	unsigned int ms_current;
 
 	SDL_Event e;
-	int quit = 0;
 
-	while (!quit) {
+	while (!game->stop) {
 		while (SDL_PollEvent(&e) != 0) {
 			if (e.type == SDL_QUIT) {
-				quit = 1;
+				game->stop = true;
 			}
 		}
 
@@ -82,7 +128,7 @@ void loop(Game* game)
 		if (ms_delta >= ms_per_tick) {
 			ms_last_tick = ms_current;
 			if (game->world) {
-				IO_update_keys();
+				IO_update();
 				World_update(game->world);
 			}
 		}
@@ -92,8 +138,49 @@ void loop(Game* game)
 			World_draw(game->world);
 		}
 		SDL_RenderPresent(sdl_renderer);
+
+		/* check whether we should change worlds. */
+		Controller* controller = game->world->controller;
+		if (controller->requested_world == RW_NONE) {
+			continue;
+		}
+
+		switch (controller->type) {
+		case CT_MENU_CONTROLLER:
+			/* always switch to first level. */
+			Game_load_stage(game, 0);
+			break;
+		case CT_STAGE_CONTROLLER:
+			/* switch to next world, depending on stage. */
+			/* TODO: implement. */
+			break;
+		default:;
+		}
 	}
 }
+
+
+bool Game_load_menu(Game* game)
+{
+	if (game->world) {
+		World_destroy(game->world);
+	}
+
+	Controller* controller = MenuController_create();
+	if (!controller) {
+		Log_error("Game_load_menu", "failed to create controller.");
+		return NULL;
+	}
+	if (!(game->world = World_create(controller))) {
+		Log_error("Game_load_menu", "Game_load_menu: failed to create world.");
+		MenuController_destroy(controller);
+		return false;
+	}
+
+	game->state = GS_MENU;
+	return true;
+}
+
 
 #if 0
 void loop(Game* game) 

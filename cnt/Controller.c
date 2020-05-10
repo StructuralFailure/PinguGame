@@ -15,5 +15,12 @@ Controller* Controller_create(void)
 		Log_error("Controller_create", "failed to allocate memory.");
 		return NULL;
 	}
+	controller->requested_world = RW_NONE;
 	return controller;
+}
+
+
+void Controller_destroy(Controller* controller)
+{
+	free(controller);
 }

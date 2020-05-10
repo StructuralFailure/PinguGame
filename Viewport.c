@@ -117,6 +117,9 @@ void Viewport_draw_line_segment(Viewport* viewport, LineSegment* line_segment)
 
 void Viewport_draw(Viewport* viewport) 
 {
+	if (!viewport) {
+		return;
+	}
 	World* world = viewport->world;
 
 	Rectangle rect_dest = {
@@ -180,6 +183,10 @@ void Viewport_draw(Viewport* viewport)
 
 void Viewport_update(Viewport* viewport)
 {
+	if (!viewport) {
+		return;
+	}
+
 	Entity* entity = viewport->locked_onto;
 	if (!entity) {
 		return;
@@ -187,7 +194,7 @@ void Viewport_update(Viewport* viewport)
 
 	Direction entity_direction = 0xFF; /* check all directions by default */
 	if (entity->get_direction) {
-		entity_direction = entity->get_direction();
+		entity_direction = entity->get_direction(entity);
 	}
 
 	Rectangle* rect_entity = &(entity->rect);

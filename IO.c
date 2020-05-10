@@ -13,7 +13,7 @@
 }
 
 
-static Uint8 io_key_to_sdl_scancode_map[__IO_KEY_COUNT] = {
+static const Uint8 io_key_to_sdl_scancode_map[__IO_KEY_COUNT] = {
 		[IO_KEY_LEFT]  = SDL_SCANCODE_LEFT,
 		[IO_KEY_UP]    = SDL_SCANCODE_UP,
 		[IO_KEY_RIGHT] = SDL_SCANCODE_RIGHT,
@@ -21,8 +21,15 @@ static Uint8 io_key_to_sdl_scancode_map[__IO_KEY_COUNT] = {
 };
 static bool current_key_status[__IO_KEY_COUNT];
 static bool previous_key_status[__IO_KEY_COUNT];
+static const Uint8* sdl_keyboard_state;
 
-static Uint8* sdl_keyboard_state;
+
+static const Uint8 io_mouse_button_to_sdl_button_map[__IO_MOUSE_BUTTON_COUNT] = {
+		[IO_MOUSE_LEFT]  = SDL_BUTTON_LEFT,
+		[IO_MOUSE_RIGHT] = SDL_BUTTON_RIGHT
+};
+static bool current_mouse_status[__IO_MOUSE_BUTTON_COUNT];
+static bool previous_mouse_status[__IO_MOUSE_BUTTON_COUNT];
 
 
 void IO_init(void)
@@ -36,6 +43,13 @@ void IO_init(void)
 }
 
 
+void IO_update(void)
+{
+	IO_update_keys();
+	IO_update_mouse();
+}
+
+
 void IO_update_keys(void)
 {
 	for (int i = 0; i < __IO_KEY_COUNT; ++i) {
@@ -43,6 +57,16 @@ void IO_update_keys(void)
 		current_key_status[i] = sdl_keyboard_state[
 			io_key_to_sdl_scancode_map[i]
 		];
+	}
+}
+
+
+void IO_update_mouse(void)
+{
+	Uint8 mouse_state = SDL_GetMouseState(NULL, NULL);
+	for (int i = 0; i < __IO_MOUSE_BUTTON_COUNT; ++i) {
+		previous_mouse_status[i] = current_mouse_status[i];
+		current_mouse_status[i] = mouse_state & SDL_BUTTON(io_mouse_button_to_sdl_button_map[i]);
 	}
 }
 
@@ -88,4 +112,35 @@ IOMouseButton IO_get_mouse_status(Vector2DInt* position)
 	}
 
 	return io_buttons;
+}
+
+
+bool IO_mouse_down(IOMouseButton button)
+{
+	return current_mouse_status[button];
+}
+
+
+bool IO_mouse_pressed(IOMouseButton button)
+{
+	/* TODO: add support for multiple buttons at once. */
+	return current_mouse_status[button] && !previous_mouse_status[button];
+}
+
+
+bool IO_mouse_depressed(IOMouseButton button)
+{
+	return !current_mouse_status[button] && previous_mouse_status[button];
+}
+
+
+Vector2DInt IO_mouse_position(void)
+{
+	int x;
+	int y;
+	SDL_GetMouseState(&x, &y);
+	return	(Vector2DInt) {
+		.x = (int)(x / RENDER_SCALE_FACTOR),
+		.y = (int)(y / RENDER_SCALE_FACTOR)
+	};
 }

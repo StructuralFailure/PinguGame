@@ -20,7 +20,7 @@ After it is read, the world loader will try to find the correct deserializer.
 If it is found, the entire line is passed to it, and the entity can use it
 to set its state accordingly.
 
-	type datum_a, datum_b, datum_c, ...
+	type datum_a datum_b datum_c, ...
 
 If no deserializer is found, the entity is not created, an error message is
 displayed, and the line is ignored.

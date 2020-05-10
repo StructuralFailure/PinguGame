@@ -6,7 +6,7 @@
 #include "Viewport.h"
 #include "Forward.h"
 #include "Game.h"
-#include "cnt/WorldController.h"
+#include "cnt/StageController.h"
 
 
 #define MAX_ENTITY_COUNT 32
@@ -32,7 +32,6 @@ typedef enum CollisionChecking {
 	CC_COLMAP          = 1,
 	CC_RECTANGLE       = 2,
 	CC_SOLID_ENTITIES  = 4,
-	__CC_COUNT
 } CollisionChecking;
 
 
@@ -46,7 +45,8 @@ typedef struct World {
 } World;
 
 
-World* World_load_from_path(const char* file_name, bool load_entities);
+World* World_create(Controller*);
+World* World_load_from_path(const char* file_name, Controller*, bool load_entities);
 void World_destroy(World* world);
 
 void World_draw(World* world);

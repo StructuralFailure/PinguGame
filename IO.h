@@ -9,7 +9,8 @@
 /* bitfield */
 typedef enum IOMouseButton {
 	IO_MOUSE_LEFT  = 1,
-	IO_MOUSE_RIGHT = 2
+	IO_MOUSE_RIGHT = 2,
+	__IO_MOUSE_BUTTON_COUNT
 } IOMouseButton;
 
 
@@ -24,11 +25,19 @@ typedef enum IOKey {
 
 void IO_init(void);
 void IO_update_keys(void);
+void IO_update_mouse(void);
+void IO_update(void);
+
 bool IO_key_down(IOKey key);
 bool IO_key_pressed(IOKey key);
 bool IO_key_depressed(IOKey key);
 
-IOMouseButton IO_get_mouse_status(Vector2DInt* position);
+
+void          IO_update_mouse(void);
+Vector2DInt   IO_mouse_position(void);
+bool          IO_mouse_down(IOMouseButton button);
+bool          IO_mouse_pressed(IOMouseButton button);
+bool          IO_mouse_depressed(IOMouseButton button);
 
 
 #endif

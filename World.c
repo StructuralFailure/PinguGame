@@ -8,8 +8,13 @@
 #include "Entity.h"
 #include "Viewport.h"
 #include "ent/Entities.h"
-#include "cnt/WorldController.h"
+#include "cnt/StageController.h"
 
+#define EC_init   EntityCollection_init
+#define EC_deinit EntityCollection_deinit
+#define EC_add    EntityCollection_add
+#define EC_remove EntityCollection_remove
+#define EC_find   EntityCollection_find
 
 /* what in the ever-loving fuck? */
 
@@ -30,7 +35,21 @@ Entity* (*entity_deserializers[__ET_COUNT])(char* string) = {
 };
 
 
-World* World_load_from_path(const char* file_path, bool load_entities) 
+World* World_create(Controller* controller)
+{
+	World* world = calloc(1, sizeof(World));
+	if (!world) {
+		Log_error("World", "failed to allocate memory.");
+		return NULL;
+	}
+	world->controller = controller;
+	controller->world = world;
+
+	return world;
+}
+
+
+World* World_load_from_path(const char* file_path, Controller* controller, bool load_entities)
 {
 	Log("World", "loading world from path %s.", file_path);
 
@@ -40,11 +59,12 @@ World* World_load_from_path(const char* file_path, bool load_entities)
 		goto fail_file;
 	}
 
-	World* world = calloc(1, sizeof(World));
+	World* world = World_create(controller);
 	if (!world) {
-		Log_error("World", "failed to allocate memory for struct World.");
+		Log_error("World", "failed to create memory.");
 		goto fail_world;
 	}
+	world->controller = controller;
 
 	Level* level = Level_load_from_file(file);
 	if (!level) {
@@ -52,11 +72,11 @@ World* World_load_from_path(const char* file_path, bool load_entities)
 		goto fail_level;
 	}
 
-	Controller* wc = WorldController_create();
+	/*Controller* wc = WorldController_create();
 	if (!wc) {
 		Log_error("World", "failed to create world controller.");
 		goto fail_world_controller;
-	}
+	}*/
 
 	Viewport* viewport = Viewport_create();
 	if (!viewport) {
@@ -78,7 +98,6 @@ World* World_load_from_path(const char* file_path, bool load_entities)
 	
 	world->ticks = 0;
 	world->level = level;
-	world->controller = wc;
 	world->viewport = viewport;
 
 	/* initialize view port with some default values.
@@ -120,8 +139,7 @@ World* World_load_from_path(const char* file_path, bool load_entities)
 	return world;
 
 	/* error handling */
-fail_viewport:         WorldController_destroy(wc);
-fail_world_controller: Level_destroy(level);
+fail_viewport:         Level_destroy(level);
 fail_level:	           World_destroy(world);
 fail_world:            fclose(file);
 fail_file:             Log_error("World", "failed to load.");
@@ -132,11 +150,17 @@ fail_file:             Log_error("World", "failed to load.");
 void World_draw(World* world) 
 {
 	Viewport_draw(world->viewport);
-	WorldController_draw(world->controller, world->viewport);
+	if (world->controller->draw) {
+		world->controller->draw(world->controller, world->viewport);
+	}
 }
 
 void World_update(World* world) 
 {
+	if (world->controller->type == CT_STAGE_CONTROLLER) {
+
+	}
+
 	/* call Entity objects' update functions, and first store their previous positions */
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
 		Entity* ent = world->entities[i];
@@ -162,7 +186,9 @@ void World_update(World* world)
 		}
 	}
 
-    WorldController_finalize_update(world->controller);
+    if (world->controller->finalize_update) {
+		world->controller->finalize_update(world->controller);
+	}
 	Viewport_update(world->viewport);
 
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
@@ -199,7 +225,10 @@ bool World_add_entity(World* world, Entity* entity)
 		}
 
 		/* inform other entities and world controller. */
-		WorldController_added_entity(world->controller, entity);
+		if (world->controller->added_entity) {
+			world->controller->added_entity(world->controller, entity);
+		}
+
 		for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
 			Entity* ent = world->entities[i];
 			if (!ent || !ent->added_other_entity) {
@@ -229,6 +258,10 @@ bool World_remove_entity(World* world, Entity* entity)
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
 		if (world->entities[i] == entity) {
 			/* inform other entities. */
+			if (world->controller->removing_entity) {
+				world->controller->removing_entity(world->controller, entity);
+			}
+
 			for (int inform_i = 0; inform_i < MAX_ENTITY_COUNT; ++inform_i) {
 				Entity* inform_ent = world->entities[inform_i];
 				if (!inform_ent || entity == inform_ent || !inform_ent->removing_other_entity) {
@@ -726,8 +759,8 @@ void World_destroy(World* world)
 			ent->destroy(ent);
 		}
 	}
+	world->controller->destroy(world->controller);
 	Level_destroy(world->level);
-	WorldController_destroy(world->controller);
 	Viewport_destroy(world->viewport);
 	free(world);
 

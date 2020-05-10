@@ -4,7 +4,7 @@
 
 #include <SDL2/SDL.h>
 #include <Util.h>
-#include "WorldController.h"
+#include "StageController.h"
 #include "Controller.h"
 #include "../ent/Player.h"
 #include "../Log.h"
@@ -24,59 +24,61 @@
 #define HEALTHBAR_FLASH_TICK_COUNT 47
 
 
-typedef struct WorldController WC;
+typedef struct StageController ss;
 
 
-static void draw_hud(Controller* wc);
+static void draw_hud(Controller* ss);
 static void draw_frame(SDL_Texture* texture, Vector2D* position, Vector2DInt* frame_dimensions, Vector2DInt* frame_index);
 
 static SDL_Texture* tex_hud;
 
 
-Controller* WorldController_create(void)
+Controller* StageController_create(void)
 {
-	Log("WorldController_create", "creating.");
+	Log("StageController_create", "creating.");
 
 	if (!tex_hud && !(tex_hud = SDLHelper_load_texture("assets/gfx/hud.bmp"))) {
-		Log_error("WorldController_create", "failed to load texture for HUD.");
+		Log_error("StageController_create", "failed to load texture for HUD.");
 		return NULL;
 	}
 
-	Controller* wc = Controller_create();
-	if (!wc) {
-		Log_error("WorldController_create", "failed to create base controller.");
+	Controller* ss = Controller_create();
+	if (!ss) {
+		Log_error("StageController_create", "failed to create base controller.");
 		return NULL;
 	}
+	ss->type = CT_STAGE_CONTROLLER;
 
-	WorldControllerData* data = calloc(1, sizeof(WorldControllerData));
+	StageControllerData* data = calloc(1, sizeof(StageControllerData));
 	if (!data) {
-		Log_error("WorldController_create", "failed to allocate memory for data.");
-		free(wc);
+		Log_error("StageController_create", "failed to allocate memory for data.");
+		free(ss);
 		return NULL;
 	}
-	wc->data = data;
+	ss->data = data;
 
-	wc->added_entity = WorldController_added_entity;
-	wc->removing_entity = WorldController_removing_entity;
-	wc->finalize_update = WorldController_finalize_update;
-	wc->draw = WorldController_draw;
+	ss->added_entity = StageController_added_entity;
+	ss->removing_entity = StageController_removing_entity;
+	ss->finalize_update = StageController_finalize_update;
+	ss->draw = StageController_draw;
+	ss->destroy = StageController_destroy;
 
 	data->current_score = 123;
 
-	Log("WorldController_create", "created.");
-	return wc;
+	Log("StageController_create", "created.");
+	return ss;
 }
 
 
-void WorldController_prepare_update(Controller* wc)
+void StageController_prepare_update(Controller* ss)
 {
 	// pass.
 }
 
 
-void WorldController_finalize_update(Controller* wc)
+void StageController_finalize_update(Controller* ss)
 {
-	WorldControllerData* data = wc->data;
+	StageControllerData* data = ss->data;
 	if (!data) {
 		return;
 	}
@@ -99,22 +101,32 @@ void WorldController_finalize_update(Controller* wc)
 }
 
 
-void WorldController_draw(Controller* wc, Viewport* viewport)
+void StageController_draw(Controller* ss, Viewport* viewport)
 {
-	draw_hud(wc);
+	draw_hud(ss);
 }
 
 
-void WorldController_destroy(Controller* wc)
+void StageController_destroy(Controller* ss)
 {
-	free(wc->data);
-	free(wc);
+	Log("StageController_destroy", "destroying.");
+
+	free(ss->data);
+	free(ss);
+
+	Log("StageController_destroy", "destroyed.");
 }
 
 
-void WorldController_added_entity(Controller* wc, Entity* entity)
+void StageController_add(Controller* ss)
 {
-	WorldControllerData* data = wc->data;
+	
+}
+
+
+void StageController_added_entity(Controller* ss, Entity* entity)
+{
+	StageControllerData* data = ss->data;
 	if (!data) {
 		return;
 	}
@@ -132,9 +144,9 @@ void WorldController_added_entity(Controller* wc, Entity* entity)
 }
 
 
-void WorldController_removing_entity(Controller* wc, Entity* entity)
+void StageController_removing_entity(Controller* ss, Entity* entity)
 {
-	WorldControllerData* data = wc->data;
+	StageControllerData* data = ss->data;
 	if (!data) {
 		return;
 	}
@@ -145,9 +157,9 @@ void WorldController_removing_entity(Controller* wc, Entity* entity)
 }
 
 
-static void draw_hud(Controller* wc)
+static void draw_hud(Controller* ss)
 {
-	WorldControllerData* data = wc->data;
+	StageControllerData* data = ss->data;
 	if (!data) {
 		return;
 	}
