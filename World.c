@@ -5,6 +5,7 @@
 #include "Log.h"
 #include "Level.h"
 #include "Graphics.h"
+#include "Collision.h"
 #include "Entity.h"
 #include "Viewport.h"
 #include "ent/Entities.h"
@@ -16,23 +17,28 @@
 #define EC_remove EntityCollection_remove
 #define EC_find   EntityCollection_find
 
+#define LAST_COLLISIONS_CAPACITY 16
+
 /* what in the ever-loving fuck? */
 
 bool (*entity_serializers[__ET_COUNT])(Entity* entity, char* output) = {
 	[ET_PLAYER]      = EntityPlayer_serialize,
 	[ET_ENEMY]       = EntityEnemy_serialize,
-	[ET_TEXT]        = EntityText_serialize,
 	[ET_PLATFORM]    = EntityPlatform_serialize
 };
 
 Entity* (*entity_deserializers[__ET_COUNT])(char* string) = {
-	[ET_PLAYER]      = EntityPlayer_deserialize,
-	[ET_ENEMY]       = EntityEnemy_deserialize,
-	[ET_TEXT]        = EntityText_deserialize,
-	[ET_LINE_DRAWER] = EntityLineDrawer_deserialize,
-	[ET_PLATFORM]    = EntityPlatform_deserialize,
-	[ET_SNAIL]       = EntitySnail_deserialize
+	[ET_PLAYER]       = EntityPlayer_deserialize,
+	[ET_ENEMY]        = EntityEnemy_deserialize,
+	[ET_LINE_DRAWER]  = EntityLineDrawer_deserialize,
+	[ET_PLATFORM]     = EntityPlatform_deserialize,
+	[ET_SNAIL]        = EntitySnail_deserialize,
+	[ET_FLAME_SPIRIT] = EntityFlameSpirit_deserialize
 };
+
+
+static bool check_colmap_collision(World* world, Rectangle* rect, Vector2D* pos_original, Rectangle* rect_last_collision);
+static bool check_colmap_collisions(World* world, Rectangle* rect, Vector2D* pos_original, Collision* last_collisions, int* last_collisions_length);
 
 
 World* World_create(Controller* controller)
@@ -157,9 +163,6 @@ void World_draw(World* world)
 
 void World_update(World* world) 
 {
-	if (world->controller->type == CT_STAGE_CONTROLLER) {
-
-	}
 
 	/* call Entity objects' update functions, and first store their previous positions */
 	for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
@@ -308,6 +311,225 @@ CollidedWith World_move_until_collision(World* world, Rectangle* rect, Vector2D*
 }
 
 
+Collision* World_move_with_info(World* world, Rectangle* rect, Vector2D* delta_pos, CollisionChecking flags, Rectangle* rect_other, int* length)
+{
+	if (!world) {
+		Log_error("World", "move_until_collision: world == NULL");
+		return CW_NOTHING;
+	}
+	if (!rect) {
+		Log_error("World", "move_until_collision: rect == NULL");
+		return CW_NOTHING;
+	}
+	if (!delta_pos) {
+		Log_error("World", "move_until_collision: delta_pos == NULL");
+		return CW_NOTHING;
+	}
+
+	/* unit vector of delta position (length = 1, kinda arbitrary but works.)
+	 * if the length of delta_pos is zero, we can't determine a unit vector, so
+	 * it'll have the value (0, 0).
+	 */
+	float delta_length = sqrt(delta_pos->x * delta_pos->x + delta_pos->y * delta_pos->y);
+	Vector2D delta_pos_unit = { 0 };
+	if (delta_length > 0) {
+		delta_pos_unit = (Vector2D) {
+				.x = delta_pos->x / delta_length,
+				.y = delta_pos->y / delta_length
+		};
+	}
+
+	Vector2D pos_original = rect->position;
+
+	/* move object to desired position */
+	rect->position.x += delta_pos->x;
+	rect->position.y += delta_pos->y;
+
+
+	static Collision last_collisions[LAST_COLLISIONS_CAPACITY];
+	int last_collisions_length = 0;
+
+	/* check whether the entity is now overlapping a
+	 * solid cell. if so, continuously move the entity
+	 * back 1 unit at a time until no collision takes place
+	 * any longer or until the entity has moved back enough
+	 * to reach its original position.
+	 */
+
+
+
+	bool has_collided = false;
+	bool is_colliding = false;
+	int dist_moved_back = 0;
+	bool last_collision_is_entity = false;
+
+	do {
+		last_collisions_length = 0;
+
+		/* (should be done, gotta test) TODO:
+		 * add support for rectangles bigger than the cells' size
+		 */
+		is_colliding = false;
+
+		if ((flags & CC_RECTANGLE) && rect_other && Rectangle_overlap(rect, rect_other)) {
+			is_colliding = true;
+			last_collision_is_entity = false;
+
+			last_collisions[last_collisions_length++] = (Collision) {
+					.type = CT_RECTANGLE,
+					.rect = *rect,
+			};
+		}
+
+		if (flags & CC_SOLID_ENTITIES) {
+			for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
+				Entity* entity = world->entities[i];
+				if (!entity || !entity->is_solid) {
+					continue;
+				}
+				if (Rectangle_overlap(rect, &(entity->rect))) {
+					is_colliding = true;
+					last_collision_is_entity = true;
+
+					last_collisions[last_collisions_length++] = (Collision) {
+						.type = CT_SOLID_ENTITY,
+						.solid_entity = entity
+					};
+
+					break;
+				}
+			}
+		}
+
+		if (flags & CC_COLMAP) {
+			if (check_colmap_collisions(world, rect, &pos_original, last_collisions, &last_collisions_length)) {
+				is_colliding = true;
+				last_collision_is_entity = false;
+			}
+		}
+
+		if (is_colliding) {
+			has_collided = true;
+
+			rect->position.x -= delta_pos_unit.x;
+			rect->position.y -= delta_pos_unit.y;
+			dist_moved_back += 1;
+
+			if ((float)dist_moved_back >= delta_length) {
+				/* TODO (maybe?):
+				 * fix rect being unable to free itself if it gets stuck
+				 * inside a solid cell.
+				 */
+				rect->position = pos_original;
+				break;
+			}
+		}
+
+	} while (is_colliding);
+
+
+	if (!has_collided) {
+		return CW_NOTHING;
+	}
+
+	/* moving the rectangale back outside the cell it collided with
+	 * likely leaves a gap which needs to be closed.
+	 */
+	for (int i = 0; i < last_collisions_length; ++i) {
+		Rectangle rect_last_collision;
+		Collision* last_collision = &(last_collisions[i]);
+		switch (last_collision->type) {
+		case CT_COLMAP:
+			rect_last_collision = (Rectangle) {
+					.position = {
+							.x = (float)last_collision->colmap_pos.x * CM_CELL_WIDTH,
+							.y = (float)last_collision->colmap_pos.y * CM_CELL_HEIGHT
+					},
+					.size = {
+							.x = CM_CELL_WIDTH,
+							.y = CM_CELL_HEIGHT
+					}
+			};
+			break;
+		case CT_SOLID_ENTITY:
+			rect_last_collision = last_collision->solid_entity->rect;
+			break;
+		case CT_RECTANGLE:
+			rect_last_collision = last_collision->rect;
+		default:; /* to make compiler stop crying about __CT_COUNT. */
+		}
+
+		if (rect->position.y >= rect_last_collision.position.y + rect_last_collision.size.y) {
+			rect->position.y = rect_last_collision.position.y + rect_last_collision.size.y;
+			last_collision->collided_with = CW_BOTTOM;
+		} else if (rect->position.y + rect->size.y <= rect_last_collision.position.y) {
+			/* differentiate between entities and cells */
+			bool valid_top_collision = false;
+
+			if (last_collision_is_entity) {
+				/*Log("World", "entity collision: rect_last_collision:");
+				Rectangle_print(&rect_last_collision);
+				Log("World", "entity collision: rect:");
+				Rectangle_print(rect);*/
+				valid_top_collision = true;
+			} else {
+
+
+				int calc_x = (int)rect_last_collision.position.x / CM_CELL_WIDTH;
+				int calc_y = (int)rect_last_collision.position.y / CM_CELL_HEIGHT - 1;
+				valid_top_collision = !Level_is_solid(world->level, calc_x, calc_y);
+			}
+
+			/* since collision checks with an entity's overlapping cells are evaluated from
+			 * top to bottom and there's no early exit of the loop (TODO ?),
+			 * in the case of collision with multiple cells, the bottom-most cell will be the
+			 * one the engine sees as the point of last collision. this leads to the following
+			 * edge case:
+			 *
+			 * if there's a perfect diagonal movement, like this:
+			 *
+			 * ....    .    = empty
+			 * .OA.    O    = entity moving diagonally to the right and downwards
+			 * ..B.    A, B = solid cells
+			 *
+			 * the engine thinks the entity collided with the top of B, so it won't allow it
+			 * to continue its downward movement. to mitigate this, there is a check to see
+			 * if there is another solid cell A on top of B, which would render a top collision
+			 * with B impossible. in this case, the logic falls through to the part where we check
+			 * for lateral collisions, which do not impede vertical movement.
+			 * in case A is not a solid cell, the engine will register the collision as a
+			 * top collision, allowing the movement to complete its horizontal part. this means
+			 * that if an entity hits an edge perfectly and there is space above it, then
+			 * it will be treated as if it had hit the top.
+			 */
+
+			/* calc = cell above last collision */
+
+
+			if (valid_top_collision) {
+				rect->position.y = rect_last_collision.position.y - rect->size.y;
+				last_collision->collided_with = CW_TOP;
+			} /* else check lateral collisions */
+		}
+
+		if (rect->position.x + rect->size.x <= rect_last_collision.position.x) {
+			rect->position.x = rect_last_collision.position.x - rect->size.x;
+			last_collision->collided_with = CW_LEFT;
+		} else if (rect->position.x >= rect_last_collision.position.x + rect_last_collision.size.x) {
+			rect->position.x = rect_last_collision.position.x + rect_last_collision.size.x;
+			last_collision->collided_with = CW_RIGHT;
+		} else {
+			last_collision->collided_with = CW_STUCK;
+		}
+	}
+
+	if (length) {
+		*length = last_collisions_length;
+	}
+	return last_collisions;
+}
+
+
 /* checks whether a rectangle is colliding with a solid or semi-solid cell in the collision map. *
  * parameters:   world               - world whose level's colmap to check
  *               rect                - rectangle at desired end position
@@ -316,7 +538,7 @@ CollidedWith World_move_until_collision(World* world, Rectangle* rect, Vector2D*
  * 
  * returns whether a collision has taken place.
  */
-bool World_check_colmap_collision(World* world, Rectangle* rect, Vector2D* pos_original, Rectangle* rect_last_collision)
+bool check_colmap_collisions(World* world, Rectangle* rect, Vector2D* pos_original, Collision* last_collisions, int* last_collisions_length)
 {
 	bool is_colliding = false;
 	RectangleInt cells = World_get_overlapping_cells(world, rect);
@@ -333,7 +555,12 @@ bool World_check_colmap_collision(World* world, Rectangle* rect, Vector2D* pos_o
 		Rectangle current_cell_rect = World_get_cell_rectangle(world, &current_cell);
 
 		if (lct_flags & LCTF_SOLID) {
-			*rect_last_collision = current_cell_rect;
+			last_collisions[*last_collisions_length] = (Collision) {
+				.type = CT_COLMAP,
+				.colmap_pos = current_cell
+			};
+			++(*last_collisions_length);
+
 			is_colliding = true;
 		} else if ((lct_flags & LCTF_SEMISOLID) && (pos_original->y + rect->size.y <= current_cell_rect.position.y)) {
 			/* check whether cell is semi-solid and whether the bottom edge of the rectangle
@@ -383,11 +610,94 @@ bool World_check_colmap_collision(World* world, Rectangle* rect, Vector2D* pos_o
 				LineSegment_intersect(&ls_top_of_cell, &ls_rect_movement_bottom_right);
 
 			if (ls_intersect) {
-				*rect_last_collision = current_cell_rect;
+				last_collisions[*last_collisions_length] = (Collision) {
+						.type = CT_COLMAP,
+						.colmap_pos = current_cell
+				};
+				++(*last_collisions_length);
+
 				is_colliding = true;
 			}
 		}
 	}
+	}
+
+	return is_colliding;
+}
+
+
+static bool check_colmap_collision(World* world, Rectangle* rect, Vector2D* pos_original, Rectangle* rect_last_collision)
+{
+	bool is_colliding = false;
+	RectangleInt cells = World_get_overlapping_cells(world, rect);
+
+	for (int dy = 0; dy < cells.size.y; ++dy) {
+		for (int dx = 0; dx < cells.size.x; ++dx) {
+
+			Vector2DInt current_cell = {
+					.x = cells.position.x + dx,
+					.y = cells.position.y + dy
+			};
+
+			LevelCellTypeFlags lct_flags = Level_get_cell_type_flags(world->level, current_cell.x, current_cell.y);
+			Rectangle current_cell_rect = World_get_cell_rectangle(world, &current_cell);
+
+			if (lct_flags & LCTF_SOLID) {
+				*rect_last_collision = current_cell_rect;
+				is_colliding = true;
+			} else if ((lct_flags & LCTF_SEMISOLID) && (pos_original->y + rect->size.y <= current_cell_rect.position.y)) {
+				/* check whether cell is semi-solid and whether the bottom edge of the rectangle
+				 * is above or on the horizontal line representing the platform. this is to make sure
+				 * we can only collide with it when approaching from the top.
+				 */
+
+				LineSegment ls_top_of_cell = {
+						.point_a = {
+								.x = current_cell_rect.position.x,
+								.y = current_cell_rect.position.y
+						},
+						.point_b = {
+								.x = current_cell_rect.position.x + current_cell_rect.size.x,
+								.y = current_cell_rect.position.y
+						}
+				};
+
+
+				/* TODO:
+				 * add support for rectangles bigger than cells
+				 * right now, only the bottom-left and the bottom-right corners of the rectangle's
+				 * movement are evaluated. if a cell is smaller than the size of the difference between
+				 * them, it could pass through the middle undetected.
+				 * could use loops here.
+				 */
+				LineSegment ls_rect_movement_top_left = {
+						.point_a = *pos_original,
+						.point_b = rect->position
+				};
+
+				LineSegment ls_rect_movement_bottom_left = LineSegment_add_vector(
+						ls_rect_movement_top_left,
+						(Vector2D) { .x = 0, .y = rect->size.y }
+				);
+
+				LineSegment ls_rect_movement_bottom_right = LineSegment_add_vector(
+						ls_rect_movement_top_left,
+						(Vector2D) { .x = rect->size.x, .y = rect->size.y }
+				);
+
+				/* no need for a variable here right now, but it will be become necessary
+				 * once we check more than two corners.
+				 */
+				bool ls_intersect =
+						LineSegment_intersect(&ls_top_of_cell, &ls_rect_movement_bottom_left) ||
+						LineSegment_intersect(&ls_top_of_cell, &ls_rect_movement_bottom_right);
+
+				if (ls_intersect) {
+					*rect_last_collision = current_cell_rect;
+					is_colliding = true;
+				}
+			}
+		}
 	}
 
 	return is_colliding;
@@ -471,7 +781,7 @@ CollidedWith World_move_until_collision_with_flags(World* world, Rectangle* rect
 			}
 		}
 
-		if ((flags & CC_COLMAP) && World_check_colmap_collision(world, rect, &pos_original, &rect_last_collision)) {
+		if ((flags & CC_COLMAP) && check_colmap_collision(world, rect, &pos_original, &rect_last_collision)) {
 			is_colliding = true;
 			last_collision_is_entity = false;
 		}

@@ -80,6 +80,8 @@ bool EntityCollection_remove_at(EntityCollection* entity_col, int index)
 	entity_col->elements[index] = entity_col->elements[entity_col->size - 1];
 	entity_col->elements[entity_col->size - 1] = NULL;
 	--entity_col->size;
+
+	return true;
 }
 
 

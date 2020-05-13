@@ -216,7 +216,7 @@ void EntityPlatform_update(Entity* entity)
 			/* crushed. */
 			Log("Platform", "update: other entity crushed.");
 			if (other_entity->message) {
-				other_entity->message(other_entity, entity, EMT_I_DAMAGED_YOU, NULL);
+				other_entity->message(other_entity, entity, EMT_CRUSHED_BY_PLATFORM, NULL);
 			}
 		}
 	}

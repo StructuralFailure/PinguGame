@@ -24,6 +24,7 @@ SDL_Texture* tex_mouse_pointer;
 typedef enum MenuButtonType {
 	MBT_START,
 	MBT_OPTIONS,
+	MBT_LEVEL_EDITOR,
 	MBT_EXIT
 } MenuButtonType;
 
@@ -44,7 +45,7 @@ typedef struct MenuButton {
 } MenuButton;
 
 
-static MenuButton main_menu_buttons[2] = {
+static MenuButton main_menu_buttons[3] = {
 		[0] = {
 				.type = MBT_START,
 				.frame_default = { 0, 0 },
@@ -52,6 +53,12 @@ static MenuButton main_menu_buttons[2] = {
 				.frame_pressed = { 0, 2 }
 		},
 		[1] = {
+				.type = MBT_LEVEL_EDITOR,
+				.frame_default = { 2, 0 },
+				.frame_hover   = { 2, 1 },
+				.frame_pressed = { 2, 2 }
+		},
+		[2] = {
 				.type = MBT_EXIT,
 				.frame_default = { 1, 0 },
 				.frame_hover   = { 1, 1 },

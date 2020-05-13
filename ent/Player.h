@@ -39,7 +39,11 @@ typedef struct EntityPlayerData {
 	Vector2D velocity;
 	EntityPlayerFacing facing;
 
+	int snowball_count;
+
 	int health;
+	int lives;
+	int damage_cooldown;
 
 	int jump_charge_counter;
 

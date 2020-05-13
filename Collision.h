@@ -6,9 +6,9 @@
 
 
 typedef enum CollisionType {
-	CT_NO_COLLISION,
 	CT_COLMAP,
 	CT_SOLID_ENTITY,
+	CT_RECTANGLE,
 	__CT_COUNT
 } CollisionType;
 
@@ -17,10 +17,10 @@ typedef struct Collision {
 	CollisionType type;
 	union {
 		Entity* solid_entity;
-		Rectangle* rect;
-		Vector2DInt* colmap_pos;
+		Rectangle rect;
+		Vector2DInt colmap_pos;
 	};
-	Direction direction;
+	CollidedWith collided_with;
 } Collision;
 
 

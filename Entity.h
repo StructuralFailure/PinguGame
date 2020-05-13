@@ -9,21 +9,23 @@
 
 
 typedef enum EntityType {
-	ET_PLAYER      = 0,
-	ET_ENEMY       = 1,
-	ET_TEXT        = 2,
-	ET_LINE_DRAWER = 3,
-	ET_PLATFORM    = 4,
-	ET_ITEM        = 5,
-	ET_CONTROLLER  = 6,
-	ET_SNAIL       = 7,
+	ET_PLAYER       = 0,
+	ET_ENEMY        = 1,
+	ET_TEXT         = 2,
+	ET_LINE_DRAWER  = 3,
+	ET_PLATFORM     = 4,
+	ET_ITEM         = 5,
+	ET_CONTROLLER   = 6,
+	ET_SNAIL        = 7,
+	ET_FLAME_SPIRIT = 8,
 	__ET_COUNT
 } EntityType;
 
 
 typedef enum EntityMessageType {
-	EMT_I_DAMAGED_YOU,
+	EMT_I_DAMAGED_YOU,  /* payload format: int* */
 	EMT_YOU_DAMAGED_ME,
+	EMT_CRUSHED_BY_PLATFORM,
 	EMT_DO_SOMETHING_ELSE,
 	__EMT_COUNT
 } EntityMessageType;
@@ -56,7 +58,10 @@ struct Entity {
 
 
 Entity* Entity_create();
+void    Entity_destroy(Entity*);
 void    Entity_resize(Entity*, Direction anchor);
+
+RectangleInt Entity_get_overlapping_cells(Entity*);
 
 
 #endif

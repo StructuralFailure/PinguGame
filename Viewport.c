@@ -146,28 +146,32 @@ void Viewport_draw(Viewport* viewport)
 	for (int y = 0; y < world->level->height; ++y) {
 		for (int x = 0; x < world->level->width; ++x) {
 			LevelCellTypeProperties* ct_properties = Level_get_cell_type_properties(world->level, x, y);
-			SDL_Texture* cell_texture = ct_properties->texture;
-
-			if (ct_properties->type == LCT_SOLID_BLOCK) {
-				/* change texture of solid block depending on its neighbors */
-
-				int tileset_index = 0;
-				tileset_index |= 1 * Level_is_solid(world->level, x - 1, y);
-				tileset_index |= 2 * Level_is_solid(world->level, x, y - 1);
-				tileset_index |= 4 * Level_is_solid(world->level, x + 1, y);
-				tileset_index |= 8 * Level_is_solid(world->level, x, y + 1);;
-
-				rect_source.position.x = tileset_index * CM_CELL_WIDTH;
-			} else {
-				rect_source.position.x = 0;
+			if (ct_properties->flags & LCTF_INVISIBLE) {
+				continue;
 			}
 
 			rect_dest.position = (Vector2D) {
-				.x = x * CM_CELL_WIDTH,
-				.y = y * CM_CELL_HEIGHT
+					.x = x * CM_CELL_WIDTH,
+					.y = y * CM_CELL_HEIGHT
 			};
 
-			Viewport_draw_texture(viewport, &rect_source, &rect_dest, cell_texture);
+			int frame_index = 0;
+
+			if (ct_properties->type == LCT_SOLID_BLOCK) {
+				/* change texture of solid block depending on its neighbors */
+				frame_index |= 1 * Level_is_solid(world->level, x - 1, y);
+				frame_index |= 2 * Level_is_solid(world->level, x, y - 1);
+				frame_index |= 4 * Level_is_solid(world->level, x + 1, y);
+				frame_index |= 8 * Level_is_solid(world->level, x, y + 1);;
+			}
+
+			RectangleInt frame = Animation_get_frame_at(&(ct_properties->animation), frame_index);
+			rect_source.position = (Vector2D) {
+					.x = (float)frame.position.x,
+					.y = (float)frame.position.y
+			};
+
+			Viewport_draw_texture(viewport, &rect_source, &rect_dest, cell_tileset.texture);
 		}
 	}
 

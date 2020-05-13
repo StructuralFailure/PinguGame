@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 #include "Graphics.h"
+#include "Tileset.h"
 
 
 typedef enum LevelCellType {
@@ -14,6 +15,8 @@ typedef enum LevelCellType {
 	LCT_ITEM_BLOCK = 3,
 	LCT_SEMISOLID_BLOCK = 4,
 	LCT_EMPTY_ITEM_BLOCK = 5,
+	LCT_SNOWBALL = 6,
+	LCT_ICE_BLOCK = 7,
 	__LCT_COUNT
 } LevelCellType;
 
@@ -29,7 +32,7 @@ typedef enum LevelCellTypeFlags {
 typedef struct LevelCellTypeProperties {
 	LevelCellType type;
 	LevelCellTypeFlags flags;
-	SDL_Texture* texture;
+	Animation animation;
 } LevelCellTypeProperties;
 
 
@@ -40,6 +43,10 @@ typedef struct Level {
 } Level;
 
 
+Tileset cell_tileset;
+
+
+Level* Level_create(int width, int height);
 Level* Level_load_from_path(const char* filename);
 Level* Level_load_from_file(FILE* file);
 void Level_destroy(Level* level);

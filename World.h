@@ -60,7 +60,6 @@ bool World_remove_entity(World* world, Entity* entity);
 CollidedWith World_move(World* world, Entity* entity, Vector2D* delta_pos);
 CollidedWith World_move_until_collision(World* world, Rectangle* rect, Vector2D* delta_pos);
 CollidedWith World_move_until_collision_with_flags(World* world, Rectangle* rect, Vector2D* delta_pos, CollisionChecking flags, Rectangle* rect_other);
-bool World_check_colmap_collision(World* world, Rectangle* rect, Vector2D* pos_original, Rectangle* rect_last_collision);
 
 RectangleInt World_get_overlapping_cells(World* world, Rectangle* rect);
 Rectangle World_get_cell_rectangle(World* world, Vector2DInt* grid_position);

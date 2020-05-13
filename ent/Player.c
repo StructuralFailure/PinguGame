@@ -18,6 +18,10 @@
 /* world behavior */
 #define DEFAULT_ENTITY_SIZE        (Vector2D) { 16, 21 }
 
+#define LIVES_START_COUNT          3
+#define HEALTH_START_COUNT         10
+#define DAMAGE_COOLDOWN            60
+
 #define GRAVITY                    0.3f
 #define GRAVITY_MAX_VSPEED         4.5f
 
@@ -49,6 +53,8 @@
 
 #define CLIMB_HSPEED               0.7f
 #define CLIMB_VSPEED               0.7f
+
+#define KICKBACK_VECTOR_LENGTH     3
 
 /* graphics behavior */
 #define WALKING_ANIMATION_FRAME_THROTTLE 7.5f
@@ -97,11 +103,16 @@ static void draw_state_wall_sliding(Entity*, Viewport*);
 static void draw_state_climbing(Entity*, Viewport*);
 static void draw_state_ejecting(Entity* entity, Viewport* viewport);
 
+static void handle_tilemap_interaction(Entity*);
+
 static void         apply_gravity(Entity*);
 static CollidedWith move_freely(Entity* entity, float hbrake_speed);
 static void         draw_frame(Entity* entity, Viewport* viewport, SDL_Texture* texture, Vector2DInt* frame_index);
 static bool         overlaps_ladder(Entity* entity);
 static bool         resize_sled_to_default(Entity* entity);
+static void         get_kicked_back(Entity* entity, Entity* aggressor);
+static bool         take_damage(Entity* entity, int amount);
+static void         die(Entity* entity);
 
 
 Entity* EntityPlayer_create(void)
@@ -189,11 +200,22 @@ Entity* EntityPlayer_deserialize(char* input)
 
 	EntityType type;
 
-	if (sscanf(input, "%d %f %f", &type, &(entity->rect.position.x), &(entity->rect.position.y)) != 3) {
-		Log_error("EntityPlayer", "deserialize: invalid argument count");
+	int x;
+	int y;
+
+	int num_args;
+	if ((num_args = sscanf(input, "%d %d %d", &type, &x, &y)) != 3) {
+		Log_error(
+				"EntityPlayer",
+				"deserialize: invalid argument count. 3 expected, %d supplied.",
+				num_args
+		);
 		EntityPlayer_destroy(entity);
 		return NULL;
 	}
+
+	EntityPlayerData* data = entity->data;
+	entity->rect.position = data->starting_pos = (Vector2D) { (float)x, (float)y };
 
 	Log("EntityPlayer_deserialize", "deserialized.");
 	return entity;
@@ -232,8 +254,16 @@ void EntityPlayer_update(Entity* entity)
 		return;
 	}
 
+	if (data->damage_cooldown > 0) {
+		--data->damage_cooldown;
+		if (data->damage_cooldown == 0) {
+			Log("EntityPlayer_update", "damage cooldown worn off.");
+		}
+	}
+
 	handle_state(entity);
 	handle_state_edges(entity);
+	handle_tilemap_interaction(entity);
 }
 
 
@@ -259,9 +289,25 @@ void* EntityPlayer_message(Entity* entity, Entity* sender, EntityMessageType mes
 	ENTITY_DATA(Player);
 	if (!data) {
 		Log_error("EntityPlayer_message", "data == NULL");
+		return NULL;
 	}
 
-	if (message_type == EMT_I_DAMAGED_YOU) {
+	switch (message_type) {
+	case EMT_CRUSHED_BY_PLATFORM:
+		die(entity);
+		break;
+	case EMT_I_DAMAGED_YOU: {
+		int damage = *(int*)payload;
+		if (take_damage(entity, damage)) {
+			get_kicked_back(entity, sender);
+		}
+
+		break;
+	}
+	default:;
+	}
+
+	if (message_type == EMT_CRUSHED_BY_PLATFORM) {
 		entity->rect.position = data->starting_pos;
 	} else if (sender->type == ET_ENEMY && message_type == EMT_YOU_DAMAGED_ME) {
 		data->velocity.y *= -0.8f;
@@ -445,7 +491,8 @@ static void handle_state_sledding(Entity* entity) {
 	if (is_too_slow || crashed_into_wall) {
 		//Log("EntityPlayer", "handle_state_sledding: trying to get up.");
 		if (crashed_into_wall) {
-			data->health -= 1;
+			take_damage(entity, 1);
+			get_kicked_back(entity, NULL);
 		}
 
 		data->velocity.x = .0f;
@@ -650,6 +697,36 @@ static void draw_state_sledding(Entity* entity, Viewport* viewport)
 }
 
 
+static void handle_tilemap_interaction(Entity* entity)
+{
+	/* for now: collecting snowballs. */
+	ENTITY_DATA_ASSERT(Player);
+
+	Level* level = entity->world->level;
+	RectangleInt overlapping_cells = Entity_get_overlapping_cells(entity);
+	for (int dy = 0; dy < overlapping_cells.size.y; ++dy) {
+	for (int dx = 0; dx < overlapping_cells.size.x; ++dx) {
+		Vector2DInt current_cell = { overlapping_cells.position.x + dx, overlapping_cells.position.y + dy };
+
+		LevelCellTypeProperties* cell_properties = Level_get_cell_type_properties(
+			level,
+			current_cell.x,
+			current_cell.y
+		);
+		if (!cell_properties) {
+			continue;
+		}
+
+		if (cell_properties->type == LCT_SNOWBALL) {
+			/* collect snowball and make it disappear off the map. */
+			++data->snowball_count;
+			Level_set_cell_type(level, current_cell.x, current_cell.y, LCT_EMPTY);
+		}
+	}
+	}
+}
+
+
 static bool overlaps_ladder(Entity* entity)
 {
 	RectangleInt overlapping_cells = World_get_overlapping_cells(entity->world, &(entity->rect));
@@ -777,4 +854,78 @@ static bool resize_sled_to_default(Entity* entity)
 		return false;
 	}
 	return true;
+}
+
+
+static void get_kicked_back(Entity* entity, Entity* aggressor)
+{
+	ENTITY_DATA_ASSERT(Player);
+
+	/* velocity is player's delta pos. */
+	Vector2D kickback_vector;
+
+	if (aggressor) {
+		Vector2D aggressor_delta_pos = Vector2D_difference(
+				aggressor->rect.position,
+				aggressor->previous_rect.position
+		);
+
+		Log("EntityPlayer",
+			"get_kicked_back: aggressor_delta_pos: %f | %f",
+			aggressor_delta_pos.x,
+			aggressor_delta_pos.y
+		);
+
+		kickback_vector = Vector2D_product(
+				Vector2D_difference(data->velocity, aggressor_delta_pos),
+				-1
+		);
+	} else {
+		kickback_vector = Vector2D_product(data->velocity, -1);
+	}
+
+	data->velocity = Vector2D_create_with_length(
+			kickback_vector,
+			KICKBACK_VECTOR_LENGTH
+	);
+}
+
+
+/* returns whether actual damage was taken. */
+static bool take_damage(Entity* entity, int amount)
+{
+	EntityPlayerData* data = entity->data;
+	if (!data) {
+		Log_error("EntityPlayer", "take_damage: data == NULL");
+		return false;
+	}
+
+	if (data->damage_cooldown > 0) {
+		return false;
+	}
+
+	data->health -= amount;
+	data->damage_cooldown = DAMAGE_COOLDOWN;
+	if (data->health <= 0) {
+		die(entity);
+	}
+
+	return true;
+}
+
+
+static void die(Entity* entity)
+{
+	ENTITY_DATA_ASSERT(Player);
+
+	/* STERBEN! */
+	--data->lives;
+
+	if (data->lives <= 0) {
+		/* TODO: implement what happens when you've run out of extra lives and die. */
+	}
+
+	data->velocity = (Vector2D) { 0, 0 };
+	entity->rect.position = data->starting_pos;
+	data->health = HEALTH_START_COUNT;
 }

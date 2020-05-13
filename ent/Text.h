@@ -1,24 +1,38 @@
+//
+// Created by fabian on 12.05.20.
+//
+
 #ifndef ENTITY_TEXT_H
 #define ENTITY_TEXT_H
 
 #include "../Entity.h"
-#include "../Viewport.h"
+#include "../Tileset.h"
+
+
+typedef enum EntityTextFontType {
+	ETFT_SMALL,
+	ETFT_LARGE
+} EntityTextFontType;
 
 
 typedef struct EntityTextData {
-	char* text; /* not owned by this entity. */
+
+	char* text;
+	EntityTextFontType font_type;
+	int character_padding;
+	Vector2D position;
+
+	/* do not modify. */
+	Animation** anims;
+
 } EntityTextData;
 
 
-Entity* EntityText_create(char* text);
-void EntityText_draw(Entity* entity, Viewport* viewport);
-void EntityText_destroy(Entity* entity);
+Entity* EntityText_create();
+void    EntityText_destroy(Entity*);
 
-void EntityText_set_text(Entity* entity, char* text);
-
-/* saving and loading */
-bool EntityText_serialize(Entity* entity, char* output);
-Entity* EntityText_deserialize(char* input);
+void EntityText_update(Entity*);
+void EntityText_draw(Entity*);
 
 
 #endif

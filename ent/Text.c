@@ -1,128 +1,149 @@
-#include <string.h>
-#include <stdlib.h>
+//
+// Created by fabian on 12.05.20.
+//
 
-#include <SDL2/SDL.h>
-#include "../SDLHelper.h"
-#include "../Entity.h"
-#include "../Graphics.h"
-#include "../Game.h"
-#include "../Log.h"
-#include "../Viewport.h"
 #include "Text.h"
+#include "../Entity.h"
+#include "../Log.h"
+#include "../Util.h"
+
+#define TEX_PATH_FONT_SMALL "assets/gfx/font_small.bmp"
+#define TEX_PATH_FONT_LARGE "assets/gfx/font_large.bmp"
+
+#define DEFAULT_CHARACTER_PADDING_SMALL 2
+#define DEFAULT_CHARACTER_PADDING_LARGE 4
+
+#define ANIMS_ROW_LETTERS 0
+#define ANIMS_ROW_NUMBERS 1
 
 
-#define TILESET_NUMBERS_OFFSET 416
-#define CHARACTER_WIDTH  16
-#define CHARACTER_HEIGHT 16
+typedef EntityTextData Data;
+typedef EntityTextFontType FontType;
 
 
-SDL_Texture* tex_tileset;
+static Tileset ts_small = {
+		.tile_width = 5,
+		.tile_height = 5
+};
 
 
-Entity* EntityText_create(char* text) 
+static Tileset ts_large = {
+		.tile_width = 16,
+		.tile_height = 16
+};
+
+
+static Animation anim_small_letters = {
+	.tileset = &ts_small,
+	.length = 26
+};
+
+static Animation anim_small_numbers = {
+	.tileset = &ts_small,
+	.length = 10,
+	.position = { 0, 1 }
+};
+
+static Animation* anims_small[2] = {
+	&anim_small_letters,
+	&anim_small_numbers
+};
+
+
+static Animation anim_large_letters = {
+	.tileset = &ts_large,
+	.length = 26
+};
+
+static Animation anim_large_numbers = {
+	.tileset = &ts_large,
+	.length = 10,
+	.position = { 0, 1 }
+};
+
+static Animation* anims_large[2] = {
+		&anim_large_letters,
+		&anim_large_numbers
+};
+
+
+
+Entity* EntityText_create(FontType font_type)
 {
-	if (!tex_tileset) {
-		tex_tileset = SDLHelper_load_texture("assets/gfx/letter_tileset.bmp");
+	if (!ts_small.texture) {
+		ts_small.texture = SDLHelper_load_texture(TEX_PATH_FONT_SMALL);
+	}
+	if (!ts_large.texture) {
+		ts_large.texture = SDLHelper_load_texture(TEX_PATH_FONT_LARGE);
 	}
 
-	Entity* entity = Entity_create();
-	if (!entity) {
-		return NULL;
-	}
-
-	EntityTextData* data = calloc(1, sizeof(EntityTextData));
-	if (!data) {
-		free(entity);
-		return NULL;
-	}
-	entity->data = data;
-
-	entity->type = ET_TEXT;
-
-	entity->draw = EntityText_draw;
-	entity->destroy = EntityText_destroy;
-
-	EntityText_set_text(entity, text);
-
-	Log("EntityText", "created with text \"%s\"\n", text);
-
-	return entity;
-}
-
-
-void EntityText_draw(Entity* entity, Viewport* viewport) 
-{
-	char* text = ((EntityTextData*)(entity->data))->text;
+	Entity* text = Entity_create();
 	if (!text) {
-		return;
+		Log_error("EntityText_create", "failed to create entity.");
+		return NULL;
+	}
+	text->type = ET_TEXT;
+
+	Data* data = calloc(1, sizeof(Data));
+	if (!data) {
+		Log_error("EntityText_create", "failed to allocate memory for data.");
+		Entity_destroy(text);
+		return NULL;
 	}
 
-	Rectangle in_tileset_rect = {
-		.position = {
-			.y = 0
-		},
-		.size = {
-			.x = CHARACTER_WIDTH,
-			.y = CHARACTER_HEIGHT
-		}
-	};
-
-
-
-	Rectangle on_screen_rect = {
-		.position = Vector2D_sum(viewport->visible.position, entity->rect.position),
-		.size = {
-			.x = CHARACTER_WIDTH,
-			.y = CHARACTER_HEIGHT
-		}
-	};
-
-
-	for (int i = 0; text[i] != '\0'; ++i) {
-		char c = text[i];
-		int tileset_x = 0;
-		bool whitespace = false;
-
-		if (c == ' ') {
-			whitespace = true;
-		} else if (c >= '0' && c <= '9') {
-			tileset_x = TILESET_NUMBERS_OFFSET + (CHARACTER_WIDTH * (c - '0'));	
-		}
-
-		if (!whitespace) {
-			in_tileset_rect.position.x = tileset_x;
-			Viewport_draw_texture(viewport, &in_tileset_rect, &on_screen_rect, tex_tileset);
-		}
-
-		on_screen_rect.position.x += CHARACTER_WIDTH;
+	data->font_type = font_type;
+	if (font_type == ETFT_SMALL) {
+		data->character_padding = DEFAULT_CHARACTER_PADDING_SMALL;
+		data->anims = anims_small;
+	} else {
+		data->character_padding = DEFAULT_CHARACTER_PADDING_LARGE;
+		data->anims = anims_large;
 	}
+
+	return text;
 }
 
 
 void EntityText_destroy(Entity* entity)
 {
-	printf("[EntityText] destroyed.\n");
-
-	EntityText_set_text(entity, NULL);
+	if (entity == NULL) {
+		return;
+	}
 	free(entity->data);
 	free(entity);
 }
 
 
-void EntityText_set_text(Entity* entity, char* text)
+void EntityText_draw(Entity* entity)
 {
-	EntityTextData* data = (EntityTextData*)(entity->data);
-	data->text = text;
-}
+	ENTITY_DATA_ASSERT(Text);
+
+	if (!data->text) {
+		return;
+	}
+
+	Vector2D current_position = entity->rect.position;
+	for (int i = 0; data->text[i] != '\0'; ++i) {
+		int c = data->text[i];
+		if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))) {
+			continue;
+		}
+
+		Animation* anim = &(anim[ANIMS_ROW_LETTERS]);
+
+		int letter_index = data->text[i] - 'A';
+		RectangleInt anim_frame = Animation_get_frame_at(anim, letter_index);
+		current_position.x += (float)(anim->tileset->tile_width + data->character_padding);
+
+		Rectangle rect_dest = {
+				.position = current_position,
+				.size = {
+						anim->tileset->tile_width,
+						anim->tileset->tile_height
+				}
+		};
 
 
-bool EntityText_serialize(Entity* entity, char* output) 
-{
-	return false;
-}
-
-
-Entity* EntityText_deserialize(char* input) 
-{
-	return NULL;
+		//SDL_RenderCopy(sdl_renderer, anim->tileset->texture, )
+	}
 }

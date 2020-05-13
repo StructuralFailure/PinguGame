@@ -49,7 +49,7 @@ typedef struct Rectangle {
 } Rectangle;
 
 
-typedef struct Rectangle2DInt {
+typedef struct RectangleInt {
 	Vector2DInt position;
 	Vector2DInt size;
 } RectangleInt;

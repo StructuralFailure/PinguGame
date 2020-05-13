@@ -8,6 +8,7 @@
 #include "LineDrawer.h"
 #include "Platform.h"
 #include "Snail.h"
+#include "FlameSpirit.h"
 
 
 #endif

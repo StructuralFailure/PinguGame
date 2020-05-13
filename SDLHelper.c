@@ -2,6 +2,7 @@
 #include <math.h>
 
 #include "SDLHelper.h"
+#include "Log.h"
 
 
 E_SDL SDLHelper_init(void) 
@@ -22,6 +23,8 @@ E_SDL SDLHelper_init(void)
 		printf("[SDL] window could not be created. error: %s\n", SDL_GetError());
 		return E_SDL_WINDOW;
 	}
+
+	SDL_ShowCursor(SDL_DISABLE);
 
 	sdl_renderer = SDL_CreateRenderer(sdl_window, -1, SDL_RENDERER_ACCELERATED);
 	if (sdl_renderer == NULL) {
@@ -54,7 +57,11 @@ SDL_Texture* SDLHelper_load_texture(const char* path)
 	if (surface == NULL) {
 		printf("[SDL] unable to load image %s. error: %s\n", path, SDL_GetError());
 		return NULL;
-	} 
+	}
+
+	if (!surface) {
+		Log_error("SDL", "failed to create optimized surface. error: %s\n", SDL_GetError());
+	}
 
     SDL_Texture* texture = SDL_CreateTextureFromSurface(sdl_renderer, surface);
 	if (texture == NULL) {

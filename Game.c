@@ -15,6 +15,7 @@
 #include "Stage.h"
 #include "cnt/MenuController.h"
 #include "cnt/StageController.h"
+#include "cnt/LevelEditorController.h"
 
 
 void loop(Game* game);
@@ -108,9 +109,9 @@ void Game_stop(Game* game) {
 
 void loop(Game* game)
 {
-	double tick_rate = TICKS_PER_SECOND;
+	unsigned int ms_per_tick = 1000 / TICKS_PER_SECOND;
 	unsigned int ms_last_tick = 0;
-	unsigned int ms_current;
+	int ms_delay;
 
 	SDL_Event e;
 
@@ -121,16 +122,9 @@ void loop(Game* game)
 			}
 		}
 
-		ms_current = SDL_GetTicks();
-		unsigned int ms_per_tick = 1000 / tick_rate;
-		unsigned int ms_delta = ms_current - ms_last_tick;
-
-		if (ms_delta >= ms_per_tick) {
-			ms_last_tick = ms_current;
-			if (game->world) {
-				IO_update();
-				World_update(game->world);
-			}
+		if (game->world) {
+			IO_update();
+			World_update(game->world);
 		}
 
 		SDL_RenderClear(sdl_renderer);
@@ -138,6 +132,12 @@ void loop(Game* game)
 			World_draw(game->world);
 		}
 		SDL_RenderPresent(sdl_renderer);
+
+		ms_delay = ms_per_tick - (SDL_GetTicks() - ms_last_tick);
+		if (ms_delay > 0) {
+			SDL_Delay(ms_delay);
+		}
+		ms_last_tick = SDL_GetTicks();
 
 		/* check whether we should change worlds. */
 		Controller* controller = game->world->controller;
@@ -149,6 +149,9 @@ void loop(Game* game)
 		case CT_MENU_CONTROLLER:
 			/* always switch to first level. */
 			Game_load_stage(game, 0);
+			break;
+		case CT_LEVEL_EDITOR_CONTROLLER:
+			Game_load_level_editor(game);
 			break;
 		case CT_STAGE_CONTROLLER:
 			/* switch to next world, depending on stage. */
@@ -172,12 +175,34 @@ bool Game_load_menu(Game* game)
 		return NULL;
 	}
 	if (!(game->world = World_create(controller))) {
-		Log_error("Game_load_menu", "Game_load_menu: failed to create world.");
+		Log_error("Game_load_menu", "failed to create world.");
 		MenuController_destroy(controller);
 		return false;
 	}
 
 	game->state = GS_MENU;
+	return true;
+}
+
+
+bool Game_load_level_editor(Game* game)
+{
+	if (game->world) {
+		World_destroy(game->world);
+	}
+
+	Controller* controller = LevelEditorController_create();
+	if (!controller) {
+		Log_error("Game_load_level_editor", "failed to create controller.");
+		return NULL;
+	}
+
+	if (!(game->world = World_create(controller))) {
+		Log_error("Game_load_level_editor", "failed to create world.");
+		LevelEditorController_destroy(controller);
+		return false;
+	}
+
 	return true;
 }
 

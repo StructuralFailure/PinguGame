@@ -2,6 +2,7 @@
 
 #include "Entity.h"
 #include "World.h"
+#include "Graphics.h"
 #include "Log.h"
 
 
@@ -15,4 +16,14 @@ Entity* Entity_create() {
 	}
 	entity->id = id_counter++;
 	return entity;
+}
+
+
+void Entity_destroy(Entity* entity) {
+	free(entity);
+}
+
+
+inline RectangleInt Entity_get_overlapping_cells(Entity* entity) {
+	return World_get_overlapping_cells(entity->world, &(entity->rect));
 }

@@ -37,6 +37,7 @@ void Game_destroy(Game*);
 
 bool Game_load_menu(Game*);
 bool Game_load_stage(Game*, int index);
+bool Game_load_level_editor(Game* game);
 
 
 #endif
